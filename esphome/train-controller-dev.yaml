@@ -1,0 +1,276 @@
+# Phase 1 bring-up config: ONE hub, both motor ports (A/B) exposed since we
+# don't yet know which port the train motor is plugged into. Use this to prove
+# the lwp3_hub component works end-to-end against real hardware before scaling
+# to train-controller.yaml's 4 hubs.
+
+substitutions:
+  device_name: esplego-dev
+  friendly_name: EspLego Dev
+  ble_max_connections: "3"
+
+packages:
+  base: !include common/base.yaml
+  ble: !include common/ble_base.yaml
+
+# Merges with the `esphome:` block in common/base.yaml. Turns the awake LED on
+# immediately on every boot - both the first boot and every wake-from-sleep
+# reboot (deep sleep wake on ESP32 is a full reboot, not an in-place resume) -
+# and arms the inactivity timer so the device doesn't stay awake forever if
+# the knob/button are never touched again after waking.
+esphome:
+  on_boot:
+    then:
+      - output.turn_on: awake_led
+      - script.execute: inactivity_timer
+
+external_components:
+  - source:
+      type: local
+      path: ../external_components
+    components: [lwp3_hub]
+
+ble_client:
+  - mac_address: !secret hub1_mac
+    id: hub1_ble
+    on_connect:
+      - output.turn_on: hub1_status_led
+    on_disconnect:
+      - output.turn_off: hub1_status_led
+  - mac_address: !secret hub2_mac
+    id: hub2_ble
+    on_connect:
+      - output.turn_on: hub2_status_led
+    on_disconnect:
+      - output.turn_off: hub2_status_led
+  - mac_address: !secret hub3_mac
+    id: hub3_ble
+    on_connect:
+      - output.turn_on: hub3_status_led
+    on_disconnect:
+      - output.turn_off: hub3_status_led
+
+# Stock ESPHome switch: off disconnects this hub and stops auto-reconnecting,
+# on reconnects. Handy to "park" a hub without powering it off, or to free
+# the BLE radio's connection slot for something else.
+switch:
+  - platform: ble_client
+    ble_client_id: hub1_ble
+    name: "Hub 1 BLE Enabled"
+    id: hub1_ble_enabled
+  - platform: ble_client
+    ble_client_id: hub2_ble
+    name: "Hub 2 BLE Enabled"
+    id: hub2_ble_enabled
+  - platform: ble_client
+    ble_client_id: hub3_ble
+    name: "Hub 3 BLE Enabled"
+    id: hub3_ble_enabled
+
+lwp3_hub:
+  - id: hub1
+    name: "Hub 1"
+    ble_client_id: hub1_ble
+    ports:
+      - A
+      - B
+  - id: hub2
+    name: "Hub 2"
+    ble_client_id: hub2_ble
+    ports:
+      - A
+      - B
+  - id: hub3
+    name: "Hub 3"
+    ble_client_id: hub3_ble
+    ports:
+      - A
+      - B
+
+number:
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: A
+    name: "Hub 1 Port A Power"
+    id: hub1_port_a
+    # Duplo Train Base motor needs at least ~50 power to overcome static
+    # friction and actually move - anything below that just hums in place.
+    min_power: 50
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    name: "Hub 1 Port B Power"
+    id: hub1_port_b
+  - platform: lwp3_hub
+    lwp3_hub_id: hub2
+    port: A
+    name: "Hub 2 Port A Power"
+    id: hub2_port_a
+    # LEGO Powered Up Train Hub: no built-in motor/speaker like Hub 1's Duplo
+    # base, just two generic external ports - the train motor could be
+    # plugged into either A or B, check the logs for which one reports
+    # "device attached". Needs a smaller boost than Hub 1's Duplo motor.
+    min_power: 10
+  - platform: lwp3_hub
+    lwp3_hub_id: hub2
+    port: B
+    name: "Hub 2 Port B Power"
+    id: hub2_port_b
+    min_power: 10
+  - platform: lwp3_hub
+    lwp3_hub_id: hub3
+    port: A
+    name: "Hub 3 Port A Power"
+    id: hub3_port_a
+    # Identical hub type to Hub 2 (plain LEGO Powered Up Train Hub).
+    min_power: 10
+  - platform: lwp3_hub
+    lwp3_hub_id: hub3
+    port: B
+    name: "Hub 3 Port B Power"
+    id: hub3_port_b
+    min_power: 10
+
+# Duplo Train Base speaker (built-in, fixed device). Best guess is Port B
+# (motor is usually Port A / port 0, speaker Port B / port 1) - check the
+# logs for "Port B: device attached (io_type_id=0x002A)" to confirm; if the
+# speaker is actually on a different port, change `port:` below to match.
+button:
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: horn
+    name: "Hub 1 Horn"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: steam
+    name: "Hub 1 Steam"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: brake
+    name: "Hub 1 Brake"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: station_departure
+    name: "Hub 1 Station Departure"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: water_refill
+    name: "Hub 1 Water Refill"
+
+# KY-040 rotary encoder: physical speed control. Wiring (ACTIVE-LOW, original/
+# reverted - the active-high rewrite for knob-rotation-wake lost the module's
+# onboard debounce filtering and produced noisy readings): CLK->GPIO32,
+# DT->GPIO33, SW->GPIO25, + to 3.3V, GND to GND. Only the button wakes the
+# device from sleep (see deep_sleep below) - rotation does not.
+# Master throttle for now - drives every currently-connected hub's ports
+# together. When adding more physical knobs per-hub later, give each its own
+# GPIO pins and target only that hub's ports (don't reuse this block's pins) -
+# see docs/gpio_pinout.md for the full pin map and reserved pins for Knobs 2-4.
+sensor:
+  - platform: rotary_encoder
+    id: speed_knob
+    name: "Speed Knob"
+    pin_a: GPIO32
+    pin_b: GPIO33
+    resolution: 2  # pulses per detent - tune to taste once you feel the turn rate
+    min_value: -100
+    max_value: 100
+    restore_mode: ALWAYS_ZERO
+    on_value:
+      then:
+        - number.set: { id: hub1_port_a, value: !lambda "return x;" }
+        - number.set: { id: hub1_port_b, value: !lambda "return x;" }
+        - number.set: { id: hub2_port_a, value: !lambda "return x;" }
+        - number.set: { id: hub2_port_b, value: !lambda "return x;" }
+        - number.set: { id: hub3_port_a, value: !lambda "return x;" }
+        - number.set: { id: hub3_port_b, value: !lambda "return x;" }
+        - script.execute: inactivity_timer
+
+binary_sensor:
+  - platform: gpio
+    id: speed_knob_button
+    name: "Speed Knob Button"
+    pin:
+      number: GPIO25
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+      # Intentionally shared with deep_sleep's wakeup_pin below (same
+      # physical button does double duty: stop while awake, wake from sleep).
+      allow_other_uses: true
+    on_click:
+      then:
+        - number.set: { id: hub1_port_a, value: 0 }
+        - number.set: { id: hub1_port_b, value: 0 }
+        - number.set: { id: hub2_port_a, value: 0 }
+        - number.set: { id: hub2_port_b, value: 0 }
+        - number.set: { id: hub3_port_a, value: 0 }
+        - number.set: { id: hub3_port_b, value: 0 }
+        # Reset the encoder's own counter too, so the next small turn
+        # continues from 0 instead of jumping back to the pre-stop position.
+        - sensor.rotary_encoder.set_value: { id: speed_knob, value: 0 }
+        - script.execute: inactivity_timer
+
+# Battery power (4xAA -> board VIN, no physical switch) + deep sleep: GPIO25
+# (the knob's button, above) doubles as the deep-sleep wake pin, so pressing
+# it both stops the trains while awake and wakes the board back up once
+# asleep. Status LEDs: GPIO26 (Hub 1 connected), GPIO27 (Hub 2 connected),
+# GPIO13 (Hub 3 connected), GPIO14 (awake/asleep) - all new pins, don't
+# conflict with GPIO25/32/33 above.
+output:
+  - platform: gpio
+    id: hub1_status_led
+    pin: GPIO26
+  - platform: gpio
+    id: hub2_status_led
+    pin: GPIO27
+  - platform: gpio
+    id: hub3_status_led
+    pin: GPIO13
+  - platform: gpio
+    id: awake_led
+    pin: GPIO14
+
+deep_sleep:
+  id: deep_sleep_1
+  # Single-pin wake on the button only - reverted from the multi-pin
+  # esp32_ext1_wakeup (knob rotation also waking) after that active-high
+  # rewrite lost the KY-040's onboard debounce filtering and produced noisy
+  # speed readings. Rotation no longer wakes the device, only the button does.
+  wakeup_pin:
+    number: GPIO25
+    mode:
+      input: true
+      pullup: true
+    inverted: true  # wake on LOW - matches the button's switch-to-GND wiring
+    # Intentionally shared with the binary_sensor above - see its comment.
+    allow_other_uses: true
+
+script:
+  - id: inactivity_timer
+    # restart: each call (boot, knob turn, button press) cancels and restarts
+    # the delay below, so sleep only actually happens after a real idle period.
+    mode: restart
+    then:
+      - delay: 30s  # TESTING - set back to something like 10min for real use
+      # Safety: zero every motor before sleeping regardless of whether a train
+      # was left running - LEGO hubs don't auto-stop just because the BLE
+      # link drops, so skipping this could leave a train running unattended
+      # until the hub's own battery dies.
+      - number.set: { id: hub1_port_a, value: 0 }
+      - number.set: { id: hub1_port_b, value: 0 }
+      - number.set: { id: hub2_port_a, value: 0 }
+      - number.set: { id: hub2_port_b, value: 0 }
+      - number.set: { id: hub3_port_a, value: 0 }
+      - number.set: { id: hub3_port_b, value: 0 }
+      - delay: 500ms  # let the write-without-response commands actually reach the hubs before the radio powers down
+      - output.turn_off: awake_led
+      - output.turn_off: hub1_status_led
+      - output.turn_off: hub2_status_led
+      - output.turn_off: hub3_status_led
+      - deep_sleep.enter: deep_sleep_1

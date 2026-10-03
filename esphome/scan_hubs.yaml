@@ -1,0 +1,47 @@
+# Throwaway utility: flash this to any spare ESP32 to discover the BLE MAC
+# addresses of nearby LEGO Powered Up hubs. Filters on the LWP3 service UUID
+# every Powered Up hub advertises, so unrelated BLE devices (phones, laptops,
+# etc.) never show up — you can power on all 4 hubs at once. See
+# docs/ble_mac_scan.md.
+
+esphome:
+  name: esplego-scanner
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+ota:
+  - platform: esphome
+    encryption:  # reuses the `api:` encryption key above
+
+esp32_ble_tracker:
+  on_ble_advertise:
+    # No `mac_address:` filter here means every nearby advertisement matches;
+    # the lambda below narrows that down to LWP3 (LEGO Powered Up) devices.
+    - then:
+        - lambda: |-
+            static const auto lwp3_service_uuid =
+                esphome::esp32_ble_tracker::ESPBTUUID::from_raw("00001623-1212-efde-1623-785feabcd123");
+            bool is_powered_up_hub = false;
+            for (auto &uuid : x.get_service_uuids()) {
+              if (uuid == lwp3_service_uuid) {
+                is_powered_up_hub = true;
+                break;
+              }
+            }
+            if (is_powered_up_hub) {
+              char buf[32];
+              ESP_LOGI("scan", "LEGO Powered Up hub: %s  RSSI: %d", x.address_str_to(buf), x.get_rssi());
+            }

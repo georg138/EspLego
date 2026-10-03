@@ -1,0 +1,18 @@
+esp32_ble_tracker:
+  scan_parameters:
+    # Passive scan at a low duty cycle: we connect by known MAC address
+    # (ble_client:) and discover ports via GATT after connecting, so we don't
+    # need active scan-response requests. Left at its default, `window:`
+    # would auto-raise to match `interval:` (100% duty continuous scanning)
+    # once wifi is configured, which competes for radio time with maintaining
+    # multiple live ble_client connections and is a common cause of flaky
+    # drops - keeping it low and explicit avoids that.
+    active: false
+    interval: 320ms
+    window: 30ms
+
+esp32_ble:
+  # One connection slot per `ble_client:` block (one per physical hub), plus
+  # headroom is unnecessary here since each slot is consumed explicitly.
+  # Override via the `ble_max_connections` substitution in the top-level config.
+  max_connections: ${ble_max_connections}

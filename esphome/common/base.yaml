@@ -1,0 +1,41 @@
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  # Default reboots the device if no API client (e.g. Home Assistant) connects
+  # within 15min - undesirable here since the device should keep running (BLE
+  # to the hubs, the local web_server UI) even when nothing's connected to the
+  # API. 0s disables the reboot-on-no-clients behavior.
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    encryption:  # reuses the `api:` encryption key above
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${friendly_name} Fallback"
+
+captive_portal:
+
+# Local web UI at http://<device-ip>/ with a slider per motor number entity
+# and a button per sound - works standalone even if Home Assistant is down.
+# version 2 (the default) ships its UI from the firmware itself, no external
+# assets/CDN needed on the LAN. `ota: false` closes web_server's own plaintext
+# /update endpoint (unauthenticated firmware upload) - OTA still works via the
+# encrypted `ota:` platform above.
+web_server:
+  ota: false

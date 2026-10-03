@@ -1,0 +1,7 @@
+esphome/secrets.yaml
+.esphome/
+.pioenvs/
+.piolibdeps/
+*.bin
+.venv/
+__pycache__/

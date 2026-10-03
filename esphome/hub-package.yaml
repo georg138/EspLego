@@ -1,0 +1,52 @@
+# Reusable per-hub package. Instantiated once per physical LEGO Powered Up hub
+# from train-controller.yaml via `packages:` + `vars:`. Each instantiation needs
+# unique substitution values: hub_id, hub_mac, hub_name. `min_power_a`/
+# `min_power_b` default to "0" (no effect) at the top level in
+# train-controller.yaml - override per-instantiation for a motor that needs a
+# boost to overcome static friction (e.g. the Duplo Train Base's).
+#
+# Defaults to 2 motor ports (A/B), matching City Hub / Train Hub. For a Technic
+# Hub (4 ports), copy this file's `lwp3_hub:`/`number:` blocks and add C/D.
+# Hub-specific extras that aren't generic across all hubs (e.g. Duplo Train
+# Base speaker sound buttons) don't belong in this shared template - add them
+# as a one-off block in train-controller.yaml instead, same as this file's
+# instantiation for that one hub.
+#
+# Connect/disconnect handling (including zeroing motor state) lives inside the
+# lwp3_hub component itself (it hooks ESP_GATTC_OPEN_EVT/CLOSE_EVT directly),
+# so no `on_connect`/`on_disconnect` YAML automation is needed here.
+
+ble_client:
+  - mac_address: ${hub_mac}
+    id: ${hub_id}_ble
+
+# Stock ESPHome switch: off disconnects this hub and stops auto-reconnecting,
+# on reconnects. Handy to "park" a hub without powering it off, or to free a
+# BLE connection slot for something else.
+switch:
+  - platform: ble_client
+    ble_client_id: ${hub_id}_ble
+    name: "${hub_name} BLE Enabled"
+    id: ${hub_id}_ble_enabled
+
+lwp3_hub:
+  - id: ${hub_id}
+    name: ${hub_name}
+    ble_client_id: ${hub_id}_ble
+    ports:
+      - A
+      - B
+
+number:
+  - platform: lwp3_hub
+    lwp3_hub_id: ${hub_id}
+    port: A
+    name: "${hub_name} Port A Power"
+    id: ${hub_id}_port_a
+    min_power: ${min_power_a}
+  - platform: lwp3_hub
+    lwp3_hub_id: ${hub_id}
+    port: B
+    name: "${hub_name} Port B Power"
+    id: ${hub_id}_port_b
+    min_power: ${min_power_b}

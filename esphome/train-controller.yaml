@@ -1,0 +1,80 @@
+substitutions:
+  device_name: esplego-controller
+  friendly_name: EspLego Trains
+  ble_max_connections: "4"
+  # Default for every hub's min_power - the plain Powered Up Train Hub motors
+  # (Hubs 2-4) need a smaller boost than Hub 1's Duplo motor, which overrides
+  # this below.
+  min_power_a: "10"
+  min_power_b: "10"
+
+packages:
+  base: !include common/base.yaml
+  ble: !include common/ble_base.yaml
+  safety: !include common/safety.yaml
+  hub1: !include
+    file: hub-package.yaml
+    vars:
+      hub_id: hub1
+      hub_mac: !secret hub1_mac
+      hub_name: "Blue Train"
+      # Duplo Train Base: Port A is the motor (needs a boost to overcome
+      # static friction), Port B is the built-in speaker (sound buttons
+      # below), not a motor - explicitly 0 rather than inheriting the
+      # Powered-Up-Train-Hub default above.
+      min_power_a: "50"
+      min_power_b: "0"
+  hub2: !include
+    file: hub-package.yaml
+    vars:
+      hub_id: hub2
+      hub_mac: !secret hub2_mac
+      hub_name: "Red Train"
+  hub3: !include
+    file: hub-package.yaml
+    vars:
+      hub_id: hub3
+      hub_mac: !secret hub3_mac
+      hub_name: "Green Train"
+  hub4: !include
+    file: hub-package.yaml
+    vars:
+      hub_id: hub4
+      hub_mac: !secret hub4_mac
+      hub_name: "Yellow Train"
+
+external_components:
+  - source:
+      type: local
+      path: ../external_components
+    components: [lwp3_hub]
+
+# Hub 1's Duplo Train Base built-in speaker (fixed device on Port B) - the
+# other 3 hubs are plain Powered Up Train Hubs with no speaker, so this is a
+# one-off block here rather than part of hub-package.yaml's shared template.
+button:
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: horn
+    name: "Blue Train Horn"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: steam
+    name: "Blue Train Steam"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: brake
+    name: "Blue Train Brake"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: station_departure
+    name: "Blue Train Station Departure"
+  - platform: lwp3_hub
+    lwp3_hub_id: hub1
+    port: B
+    sound: water_refill
+    name: "Blue Train Water Refill"
