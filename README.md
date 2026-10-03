@@ -2,8 +2,8 @@
 
 An ESPHome device that remote-controls and automates multiple LEGO Powered Up
 train hubs from a single ESP32, over Bluetooth LE — with Home Assistant
-integration, a standalone local web UI, and a physical speed knob, all
-running from AA batteries.
+integration, a standalone local web UI, a physical speed knob, and
+battery-power support via deep sleep.
 
 ## Why this exists
 
@@ -15,6 +15,33 @@ Wireless Protocol v3 (LWP3) directly as a custom ESPHome `external_component`
 (`external_components/lwp3_hub/`), built on ESPHome's native `ble_client`,
 which already supports multiple simultaneous BLE connections from one ESP32.
 See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
+
+## Current status
+
+**Confirmed working on real hardware:**
+- Hub 1 (Duplo Train Base) motor control, including the `min_power` boost.
+- The rotary encoder knob + button, driving speed/stop.
+- BLE MAC scanning workflow (`scan_hubs.yaml`).
+
+**Implemented and compiles, but not yet verified on real hardware:**
+- **Battery operation (4×AA) has not been tested at all** — the board has
+  only run on USB power so far. Deep sleep and the wake-from-button cycle
+  are implemented but unverified end-to-end.
+- Hub 2 and Hub 3 motor control (both connect and report their port
+  topology correctly, but actual motor movement hasn't been explicitly
+  confirmed for either).
+- Duplo speaker sound buttons (an activation-step fix was applied after an
+  initial "no sound" report; not re-tested since).
+- The local web UI and per-hub BLE enable/disable switch.
+
+**Known gaps:**
+- **Only 1 of the planned 4 knobs exists.** Knobs 2-4 have pins reserved in
+  [`docs/gpio_pinout.md`](docs/gpio_pinout.md) but aren't wired or in any
+  YAML config yet - the current knob acts as a "master throttle" driving
+  every connected hub at once, not one knob per hub.
+- Hub 4's BLE MAC hasn't been captured yet, and the full 4-hub build
+  (`train-controller.yaml`) hasn't been run on real hardware with all 4
+  hubs present.
 
 ## What it does
 
