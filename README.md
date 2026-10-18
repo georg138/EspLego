@@ -20,7 +20,7 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 
 **Confirmed working on real hardware:**
 - Hub 1 (Duplo Train Base) motor control, including the `min_power` boost.
-- The rotary encoder knob + button, driving speed/stop.
+- Knob 1 (rotary encoder + button), driving speed/stop (before the 4-knob rework).
 - BLE MAC scanning workflow (`scan_hubs.yaml`).
 
 **Implemented and compiles, but not yet verified on real hardware:**
@@ -35,13 +35,19 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 - The local web UI and per-hub BLE enable/disable switch.
 
 **Known gaps:**
-- **Only 1 of the planned 4 knobs exists.** Knobs 2-4 have pins reserved in
-  [`docs/gpio_pinout.md`](docs/gpio_pinout.md) but aren't wired or in any
-  YAML config yet - the current knob acts as a "master throttle" driving
-  every connected hub at once, not one knob per hub.
-- Hub 4's BLE MAC hasn't been captured yet, and the full 4-hub build
-  (`train-controller.yaml`) hasn't been run on real hardware with all 4
-  hubs present.
+- **Knobs 2-4 are in the dev config but not wired yet.** Knob N drives hub
+  N only (Knob 1 is no longer a master throttle). Pins and the 1N4148 wake
+  wiring are in [`docs/gpio_pinout.md`](docs/gpio_pinout.md); Knob 1's pins
+  moved (DT 33 -> 25, SW 25 -> 39, green LED 14 -> 23), so rewire before
+  flashing.
+- The full 4-hub build (`train-controller.yaml`) hasn't been run on real
+  hardware with all 4 hubs present.
+- **LEGO Remote support is compile-tested only.** The remote button byte
+  values, battery property and LED mode come from the public LWP3 docs and
+  still need confirming on hardware; set `remote1_mac`..`remote4_mac` in
+  `esphome/secrets.yaml` (placeholders until then). 8 BLE connection slots
+  (4 hubs + 4 registered remotes; at most 6 connected at once) plus Wi-Fi on
+  a classic ESP32 is untested.
 
 ## What it does
 
@@ -55,11 +61,19 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   stop — works even if Home Assistant/Wi-Fi is down.
 - A global "Stop All Trains" safety switch, and automatic motor zeroing on
   BLE disconnect.
+- LEGO Powered Up Remote (Handset 88010) support, via `remote-package.yaml`:
+  4 remotes are registered but only the first two that connect are used
+  (slot 1 drives hub1+hub2, slot 2 drives hub3+hub4; left button group ->
+  first hub, right -> second; `+`/`-` step speed by 10, red stops), with button `binary_sensor`s,
+  a battery `sensor` and an RGB LED `light`. Hubs stop if their remote
+  disconnects.
 - Per-hub BLE enable/disable switch (park a hub without power-cycling it).
 - A local web UI (`http://<device-ip>/`) with no Home Assistant dependency.
 - Battery operation (4×AA, no physical power switch): deep sleep after an
-  inactivity timeout, woken back up by the knob's button, with status LEDs
-  for each hub's connection state and awake/asleep.
+  inactivity timeout (10 min, with a 30 s blinking warning), woken back up
+  by any knob's button (diode-ORed onto GPIO14), with a status LED per hub plus a dual-color LED:
+  green = a hub is connected, amber = none, alternating with red = battery
+  low (measured through a divider on GPIO36).
 
 ## Hardware
 
@@ -67,12 +81,11 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 - LEGO Powered Up hubs — currently wired: Hub 1 (Duplo Train Base), Hub 2 &
   Hub 3 (plain Powered Up Train Hub). A 4th hub slot exists in the full
   config, pending its MAC.
-- A KY-040 rotary encoder with integrated pushbutton.
+- Four KY-040 rotary encoders with integrated pushbuttons (one per hub), plus four 1N4148 diodes for wake.
 - 4 LEDs (one per connected hub + one "awake" indicator).
 - 4×AA batteries into the board's 5V/VIN pin.
 
-See [`docs/gpio_pinout.md`](docs/gpio_pinout.md) for the full pin map,
-including reserved pins for 3 more knobs.
+See [`docs/gpio_pinout.md`](docs/gpio_pinout.md) for the full pin map.
 
 ## Repo layout
 
@@ -81,7 +94,8 @@ esphome/
   common/              shared base.yaml (wifi/api/ota/web_server), ble_base.yaml, safety.yaml
   hub-package.yaml      reusable per-hub block for the full 4-hub config
   train-controller.yaml        the full 4-hub build
-  train-controller-dev.yaml    single-board bring-up config (3 hubs, knob, LEDs, deep sleep - the active dev/test config)
+  train-controller-dev.yaml    single-board bring-up config (4 hubs, 4 remotes, 4 knobs, LEDs, deep sleep - the active dev/test config)
+  knob-package.yaml     reusable per-knob block (encoder + button) for the dev config
   scan_hubs.yaml         throwaway tool to find a hub's BLE MAC
   secrets.yaml.example   template - copy to secrets.yaml and fill in
 external_components/lwp3_hub/   the custom LWP3 BLE component (protocol, hub lifecycle, number/button platforms)

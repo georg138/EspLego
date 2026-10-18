@@ -43,6 +43,21 @@ std::vector<uint8_t> encode_sound(uint8_t port, DuploSound sound) {
   return msg;
 }
 
+std::vector<uint8_t> encode_led_rgb(uint8_t port, uint8_t r, uint8_t g, uint8_t b) {
+  auto msg = direct_mode_command_(port, MODE_LED_RGB);
+  msg.push_back(r);
+  msg.push_back(g);
+  msg.push_back(b);
+  msg[0] = static_cast<uint8_t>(msg.size());
+  return msg;
+}
+
+std::vector<uint8_t> encode_hub_property_enable_updates(uint8_t property) {
+  std::vector<uint8_t> msg = {0, HUB_ID, MSG_TYPE_HUB_PROPERTIES, property, HUB_PROP_OP_ENABLE_UPDATES};
+  msg[0] = static_cast<uint8_t>(msg.size());
+  return msg;
+}
+
 std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications) {
   std::vector<uint8_t> msg = {
       0,  // length, filled in below
@@ -79,6 +94,24 @@ bool decode_hub_attached_io(const uint8_t *data, size_t len, HubAttachedIoEvent 
   }
 
   return false;
+}
+
+bool decode_port_value_single(const uint8_t *data, size_t len, PortValueEvent &out) {
+  if (message_type(data, len) != MSG_TYPE_PORT_VALUE_SINGLE || len < 5)
+    return false;
+  out.port = data[3];
+  out.payload = data + 4;
+  out.payload_len = len - 4;
+  return true;
+}
+
+bool decode_hub_property_update(const uint8_t *data, size_t len, HubPropertyUpdate &out) {
+  if (message_type(data, len) != MSG_TYPE_HUB_PROPERTIES || len < 6 || data[4] != HUB_PROP_OP_UPDATE)
+    return false;
+  out.property = data[3];
+  out.payload = data + 5;
+  out.payload_len = len - 5;
+  return true;
 }
 
 }  // namespace lwp3_protocol

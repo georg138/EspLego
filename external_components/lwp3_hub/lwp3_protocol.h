@@ -24,10 +24,27 @@ inline const char *characteristic_uuid() { return "00001624-1212-efde-1623-785fe
 constexpr uint8_t HUB_ID = 0x00;
 
 // Message types (byte 2 of every message).
+constexpr uint8_t MSG_TYPE_HUB_PROPERTIES = 0x01;
 constexpr uint8_t MSG_TYPE_HUB_ATTACHED_IO = 0x04;
 constexpr uint8_t MSG_TYPE_PORT_INPUT_FORMAT_SETUP_SINGLE = 0x41;
 constexpr uint8_t MSG_TYPE_PORT_VALUE_SINGLE = 0x45;
 constexpr uint8_t MSG_TYPE_PORT_OUTPUT_COMMAND = 0x81;
+
+// Hub Properties (0x01): property IDs (byte 3) and operations (byte 4).
+constexpr uint8_t HUB_PROP_BATTERY_VOLTAGE = 0x06;  // percentage, 0-100
+constexpr uint8_t HUB_PROP_OP_ENABLE_UPDATES = 0x02;
+constexpr uint8_t HUB_PROP_OP_UPDATE = 0x06;
+
+// Fixed port IDs on the LEGO Powered Up Remote (Handset, hub type 0x42).
+constexpr uint8_t REMOTE_PORT_LEFT_BUTTONS = 0x00;
+constexpr uint8_t REMOTE_PORT_RIGHT_BUTTONS = 0x01;
+constexpr uint8_t REMOTE_PORT_LED = 0x34;  // 52
+
+// Remote button group value (mode 0, one byte per Port Value message).
+constexpr uint8_t REMOTE_BUTTON_RELEASED = 0x00;
+constexpr uint8_t REMOTE_BUTTON_PLUS = 0x01;
+constexpr uint8_t REMOTE_BUTTON_RED = 0x7F;
+constexpr uint8_t REMOTE_BUTTON_MINUS = 0xFF;
 
 // Hub Attached I/O (0x04) event byte (byte 4).
 constexpr uint8_t IO_EVENT_DETACHED = 0x00;
@@ -45,6 +62,10 @@ constexpr uint8_t MODE_POWER = 0x00;
 // Direct mode data mode byte for the Duplo Train Base's built-in speaker:
 // mode 1 plays one of a fixed set of predefined sounds (payload = sound ID).
 constexpr uint8_t MODE_SOUND = 0x01;
+// Remote button groups: mode 0 reports the pressed button as a single byte.
+constexpr uint8_t MODE_REMOTE_BUTTONS = 0x00;
+// Remote RGB LED: mode 1 takes three payload bytes, R/G/B 0-255.
+constexpr uint8_t MODE_LED_RGB = 0x01;
 
 // Duplo Train Base predefined sound IDs (payload byte for MODE_SOUND).
 enum class DuploSound : uint8_t {
@@ -74,6 +95,14 @@ std::vector<uint8_t> encode_sound(uint8_t port, DuploSound sound);
 /// until it's been activated this way first.
 std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications);
 
+/// Builds a full Port Output Command message that sets an RGB LED (e.g. the
+/// Remote's, on REMOTE_PORT_LED) to the given color.
+std::vector<uint8_t> encode_led_rgb(uint8_t port, uint8_t r, uint8_t g, uint8_t b);
+
+/// Builds a Hub Properties (0x01) message that enables update notifications
+/// for a hub property (e.g. HUB_PROP_BATTERY_VOLTAGE).
+std::vector<uint8_t> encode_hub_property_enable_updates(uint8_t property);
+
 struct HubAttachedIoEvent {
   uint8_t port{0};
   bool attached{false};
@@ -83,6 +112,24 @@ struct HubAttachedIoEvent {
 /// Parses a Hub Attached I/O (0x04) message. Returns false if `data`/`len`
 /// don't look like a well-formed message of this type.
 bool decode_hub_attached_io(const uint8_t *data, size_t len, HubAttachedIoEvent &out);
+
+struct PortValueEvent {
+  uint8_t port{0};
+  const uint8_t *payload{nullptr};  // points into the caller's buffer
+  size_t payload_len{0};
+};
+
+/// Parses a Port Value (Single) (0x45) message. `out.payload` points into `data`.
+bool decode_port_value_single(const uint8_t *data, size_t len, PortValueEvent &out);
+
+struct HubPropertyUpdate {
+  uint8_t property{0};
+  const uint8_t *payload{nullptr};  // points into the caller's buffer
+  size_t payload_len{0};
+};
+
+/// Parses a Hub Properties (0x01) Update message (operation 0x06).
+bool decode_hub_property_update(const uint8_t *data, size_t len, HubPropertyUpdate &out);
 
 }  // namespace lwp3_protocol
 }  // namespace lwp3_hub

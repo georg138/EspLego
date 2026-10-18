@@ -29,7 +29,9 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(LWP3Hub),
             cv.Required(CONF_NAME): cv.string,
-            cv.Required(CONF_PORTS): cv.ensure_list(validate_port_letter),
+            # Optional: a Powered Up Remote has no A-D motor ports, only fixed
+            # ports used by the binary_sensor/sensor/light platforms.
+            cv.Optional(CONF_PORTS, default=[]): cv.ensure_list(validate_port_letter),
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)

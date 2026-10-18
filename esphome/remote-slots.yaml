@@ -1,0 +1,55 @@
+# Shared state for the LEGO Remote "slots". Include ONCE from each top-level
+# config, alongside one remote-package.yaml instance per registered remote.
+#
+# There are only two control slots. The first two remotes that connect claim
+# them (slot 1 drives hub1 + hub2, slot 2 drives hub3 + hub4); any further
+# remote that connects is disconnected again and ignored until a slot frees
+# up, at which point it is allowed to retry (see remotes_rearm).
+
+globals:
+  - id: slot1_owner  # remote index (1-4) that owns slot 1, 0 = free
+    type: int
+    initial_value: "0"
+  - id: slot2_owner
+    type: int
+    initial_value: "0"
+
+script:
+  # Drives a slot's hubs. side: 0 = left group's hub, 1 = right group's hub,
+  # 2 = both hubs. stop = true zeroes the motors, otherwise `delta` is added to
+  # the current speed (clamped to -100..100). slot 0 (not an active remote) is
+  # ignored.
+  - id: remote_drive
+    mode: parallel
+    parameters:
+      slot: int
+      side: int
+      delta: int
+      stop: bool
+    then:
+      - lambda: |-
+          if (slot < 1 || slot > 2)
+            return;
+          number::Number *ports[4][2] = {
+              {id(hub1_port_a), id(hub1_port_b)},
+              {id(hub2_port_a), id(hub2_port_b)},
+              {id(hub3_port_a), id(hub3_port_b)},
+              {id(hub4_port_a), id(hub4_port_b)},
+          };
+          for (int s = 0; s < 2; s++) {
+            if (side != 2 && side != s)
+              continue;
+            auto **pair = ports[(slot - 1) * 2 + s];
+            int v = stop ? 0 : std::max(-100, std::min(100, (int) pair[0]->state + delta));
+            pair[0]->make_call().set_value(v).perform();
+            pair[1]->make_call().set_value(v).perform();
+          }
+
+  # Called whenever an active remote disconnects (a slot just freed up): lets
+  # every remote that was turned away try to connect again.
+  - id: remotes_rearm
+    then:
+      - script.execute: remote1_rearm
+      - script.execute: remote2_rearm
+      - script.execute: remote3_rearm
+      - script.execute: remote4_rearm

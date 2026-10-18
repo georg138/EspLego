@@ -1,0 +1,54 @@
+# Reusable per-knob package: one KY-040 rotary encoder + push button that
+# drives ONE hub (both its ports A/B). Instantiated once per physical knob from
+# train-controller-dev.yaml via `packages:` + `vars:`. Vars: knob_id, knob_name,
+# hub_id (hub1..hub4), clk_pin, dt_pin, sw_pin. Needs an `inactivity_timer`
+# script in the top-level config.
+#
+# Wiring is ACTIVE-LOW: module `+` to 3.3V, GND to GND, CLK/DT/SW to the pins.
+# The module's own pull-ups hold all three lines high, so no internal or
+# external resistors are needed (which also makes the input-only pins 34-39 fine).
+# Do not rewire the encoder common to 3.3V (active-high): that defeated the
+# module's onboard CLK/DT debounce and gave noisy readings - see
+# docs/gpio_pinout.md.
+#
+# Turning steps the hub's CURRENT speed (read back from its number entities)
+# by 1 per detent, so the knob stays in sync when the same hub is also moved by
+# a remote or Home Assistant. Pressing the button stops the hub. Every action
+# restarts the inactivity timer. Waking from deep sleep is NOT done here: the
+# button is diode-ORed onto the shared wake pin (see deep_sleep in the top-level
+# config and docs/gpio_pinout.md).
+
+sensor:
+  - platform: rotary_encoder
+    id: ${knob_id}
+    name: "${knob_name} Position"
+    internal: true  # raw counter, not meaningful - the hub's own number entities carry the speed
+    pin_a: ${clk_pin}
+    pin_b: ${dt_pin}
+    resolution: 2  # pulses per detent - tune to taste once you feel the turn rate
+    on_clockwise:
+      - lambda: |-
+          int v = std::min(100, (int) id(${hub_id}_port_a).state + 1);
+          id(${hub_id}_port_a).make_call().set_value(v).perform();
+          id(${hub_id}_port_b).make_call().set_value(v).perform();
+      - script.execute: inactivity_timer
+    on_anticlockwise:
+      - lambda: |-
+          int v = std::max(-100, (int) id(${hub_id}_port_a).state - 1);
+          id(${hub_id}_port_a).make_call().set_value(v).perform();
+          id(${hub_id}_port_b).make_call().set_value(v).perform();
+      - script.execute: inactivity_timer
+
+binary_sensor:
+  - platform: gpio
+    id: ${knob_id}_button
+    name: "${knob_name} Button"
+    pin:
+      number: ${sw_pin}
+      mode:
+        input: true
+      inverted: true
+    on_click:
+      - number.set: { id: "${hub_id}_port_a", value: 0 }
+      - number.set: { id: "${hub_id}_port_b", value: 0 }
+      - script.execute: inactivity_timer

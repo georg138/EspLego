@@ -26,7 +26,7 @@ Lifecycle: connect (handled by `ble_client`) → discover LWP3 service/character
 - `number` per motor port (−100..100), the actual train control surface.
 - Connect/disconnect handling (including zeroing motor state) lives inside the component itself, which hooks `ESP_GATTC_OPEN_EVT`/`ESP_GATTC_CLOSE_EVT` directly (confirmed via ESPHome's `ble_client`/`esp32_ble_client` source: `BLEClientNode::gattc_event_handler` receives every GATT event, not just notify/search — see `ble_client.cpp`'s broadcast loop). No separate `on_connect`/`on_disconnect` YAML automation or custom binary_sensor needed for this in v1.
 
-**v2, explicitly deferred**: hub LED color (`light`), battery voltage (`sensor`), button press (`binary_sensor`), RSSI. Add only if/when requested — LWP3 message parsing for these adds real complexity that isn't needed to drive trains.
+**v2**: hub LED color (`light`), battery (`sensor`) and button press (`binary_sensor`) are implemented for the LEGO Remote (see `remote-package.yaml`; compile-tested, hardware-unverified). RSSI is still deferred. Add only if/when requested — LWP3 message parsing for these adds real complexity that isn't needed to drive trains.
 
 **Protocol code separation**: `lwp3_protocol.{h,cpp}` holds pure encode/decode functions with no ESPHome/BLE includes, independently testable, keeping `lwp3_hub.cpp` focused on connection lifecycle/state.
 
