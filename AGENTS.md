@@ -105,20 +105,24 @@ root.
   maintaining multiple live `ble_client` connections and was an observed
   cause of flaky BLE drops.
 - `esphome/common/safety.yaml`: the global "Stop All Trains" switch (full
-  config only).
+  config only); it runs the `stop_all` script from `controls.yaml`.
 - `esphome/hub-package.yaml`: reusable per-hub block (`ble_client` +
   `lwp3_hub` + per-port `number`), parametrized via substitutions
-  (`hub_id`, `hub_mac`, `hub_name`, `min_power_a`, `min_power_b`). Hub-specific
+  (`hub_id`, `hub_mac`, `hub_name`, `min_power_a`, `min_power_b`, `light_b`). Hub-specific
   extras that aren't generic across all hubs (e.g. one hub's Duplo speaker
   sound buttons) don't belong in this shared template — add them as a
   one-off block in the top-level config instead, targeting that hub's
   `lwp3_hub_id` directly.
-- Physical GPIO wiring (rotary encoder, buttons, status LEDs, deep sleep
-  wake pin) lives only in `train-controller-dev.yaml`, never in
-  `hub-package.yaml` — it's board-specific, not something that can be
+- Physical GPIO wiring (rotary encoder, buttons, status LEDs, battery
+  sensor, deep sleep wake pin, inactivity timer) lives only in
+  `esphome/controls.yaml`, which both top-level configs include — never in
+  `hub-package.yaml`, since it's board-specific, not something that can be
   parametrized per virtual hub. See `docs/gpio_pinout.md` for the current
   pin map. Per-knob blocks live in `knob-package.yaml` (instantiated 4x from
-  the dev config).
+  `controls.yaml`). Both configs must define hubs `hub1`..`hub5` (ids
+  `hubN_ble`, `hubN_port_a/b`) and the `battery_low_v` substitution.
+  Hub 1/Hub 5 exclusivity (`!extend` on `hub1_ble`/`hub5_ble` in the full
+  config) is declared per top-level config, not in `controls.yaml`.
 
 ### Dev config vs full config
 

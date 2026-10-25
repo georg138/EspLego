@@ -1,6 +1,7 @@
-# Global on-device safety switch: zeroes every hub's motor ports. Works even if
-# Home Assistant/Wi-Fi is down, since it only depends on entities already local
-# to this device. Specific to the 4-hub train-controller.yaml (hub1..hub4).
+# Global on-device safety switch: zeroes every hub's motors via the `stop_all`
+# script from controls.yaml (hubs 1-5, also drops manual headlight overrides).
+# Works even if Home Assistant/Wi-Fi is down, since it only depends on entities
+# already local to this device.
 switch:
   - platform: template
     name: "Stop All Trains"
@@ -8,12 +9,5 @@ switch:
     icon: "mdi:stop-circle"
     optimistic: true
     turn_on_action:
-      - number.set: { id: hub1_port_a, value: 0 }
-      - number.set: { id: hub1_port_b, value: 0 }
-      - number.set: { id: hub2_port_a, value: 0 }
-      - number.set: { id: hub2_port_b, value: 0 }
-      - number.set: { id: hub3_port_a, value: 0 }
-      - number.set: { id: hub3_port_b, value: 0 }
-      - number.set: { id: hub4_port_a, value: 0 }
-      - number.set: { id: hub4_port_b, value: 0 }
+      - script.execute: stop_all
       - switch.turn_off: stop_all_trains

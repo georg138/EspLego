@@ -1,17 +1,23 @@
 substitutions:
   device_name: esplego-controller
   friendly_name: EspLego Trains
-  ble_max_connections: "6"  # 4 hubs + 2 registered remotes
+  ble_max_connections: "5"  # 5 hubs (remotes disabled)
   # Default for every hub's min_power - the plain Powered Up Train Hub motors
   # (Hubs 2-4) need a smaller boost than Hub 1's Duplo motor, which overrides
   # this below.
   min_power_a: "10"
   min_power_b: "10"
+  # Set to "true" per hub (below) when a Powered Up light sits on port B.
+  light_b: "false"
+  # Battery pack voltage (V) below which the status LED alternates with red.
+  battery_low_v: "4.4"
 
 packages:
   base: !include common/base.yaml
   ble: !include common/ble_base.yaml
   safety: !include common/safety.yaml
+  # Knobs, buttons, LEDs, battery sensor and deep sleep (see controls.yaml).
+  controls: !include controls.yaml
   hub1: !include
     file: hub-package.yaml
     vars:
@@ -42,36 +48,51 @@ packages:
       hub_id: hub4
       hub_mac: !secret hub4_mac
       hub_name: "Yellow Train"
-  # LEGO Powered Up Remotes: 2 are registered, one per control slot
-  # (see remote-slots.yaml).
-  remote_slots: !include remote-slots.yaml
-  remote1: !include
-    file: remote-package.yaml
+  # Hub 5 is an alternative to Hub 1 (normally only one of the two is on): they
+  # share Knob 1 and Hub 1's status LED.
+  hub5: !include
+    file: hub-package.yaml
     vars:
-      remote_id: remote1
-      remote_index: "1"
-      remote_mac: !secret remote1_mac
-      remote_name: "Remote 1"
-  remote2: !include
-    file: remote-package.yaml
-    vars:
-      remote_id: remote2
-      remote_index: "2"
-      remote_mac: !secret remote2_mac
-      remote_name: "Remote 2"
-
-# Required by remote-package.yaml (called on every remote button press). The
-# full config has no inactivity timer yet, so this is a no-op.
-script:
-  - id: remote_activity
-    then:
-      - delay: 0ms
+      hub_id: hub5
+      hub_mac: !secret hub5_mac
+      hub_name: "Blue Train Alt"
+  # LEGO Powered Up Remotes: DISABLED for now (re-enable once real remote MACs
+  # are in secrets.yaml, and raise ble_max_connections to 7; see remote-slots.yaml).
+  # remote_slots: !include remote-slots.yaml
+  # remote1: !include
+  #   file: remote-package.yaml
+  #   vars:
+  #     remote_id: remote1
+  #     remote_index: "1"
+  #     remote_mac: !secret remote1_mac
+  #     remote_name: "Remote 1"
+  # remote2: !include
+  #   file: remote-package.yaml
+  #   vars:
+  #     remote_id: remote2
+  #     remote_index: "2"
+  #     remote_mac: !secret remote2_mac
+  #     remote_name: "Remote 2"
 
 external_components:
   - source:
       type: local
       path: ../external_components
     components: [lwp3_hub]
+
+# Hub 1 and Hub 5 are alternatives: whichever connects first parks the other
+# (`!extend` adds to the ble_client entries from hub-package.yaml).
+ble_client:
+  - id: !extend hub1_ble
+    on_connect:
+      - switch.turn_off: hub5_ble_enabled
+    on_disconnect:
+      - switch.turn_on: hub5_ble_enabled
+  - id: !extend hub5_ble
+    on_connect:
+      - switch.turn_off: hub1_ble_enabled
+    on_disconnect:
+      - switch.turn_on: hub1_ble_enabled
 
 # Hub 1's Duplo Train Base built-in speaker (fixed device on Port B) - the
 # other 3 hubs are plain Powered Up Train Hubs with no speaker, so this is a

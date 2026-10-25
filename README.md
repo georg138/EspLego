@@ -41,7 +41,8 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   moved (DT 33 -> 25, SW 25 -> 39, green LED 14 -> 23); knobs 2-4 and the hub LEDs were re-pinned so every knob line is an RTC wake pin, so rewire before
   flashing.
 - The full 4-hub build (`train-controller.yaml`) hasn't been run on real
-  hardware with all 4 hubs present.
+  hardware with all hubs present. It now has the same controls as the dev
+  config (knobs, buttons, LEDs, sleep) via `controls.yaml`.
 - **LEGO Remote support is compile-tested only.** The remote button byte
   values, battery property and LED mode come from the public LWP3 docs and
   still need confirming on hardware; set `remote1_mac`/`remote2_mac` in
@@ -105,10 +106,11 @@ See [`docs/gpio_pinout.md`](docs/gpio_pinout.md) for the full pin map.
 ```
 esphome/
   common/              shared base.yaml (wifi/api/ota/web_server), ble_base.yaml, safety.yaml
-  hub-package.yaml      reusable per-hub block for the full 4-hub config
-  train-controller.yaml        the full 4-hub build
+  hub-package.yaml      reusable per-hub block for the full config
+  controls.yaml         shared physical controls (knobs, buttons, LEDs, battery, sleep) for both configs
+  train-controller.yaml        the full build (5 hubs via hub-package.yaml, same controls, remotes disabled)
   train-controller-dev.yaml    single-board bring-up config (5 hubs - Hub 1/Hub 5 are mutually exclusive alternatives on Knob 1 - remotes disabled, 4 knobs, LEDs, deep sleep - the active dev/test config)
-  knob-package.yaml     reusable per-knob block (encoder + button) for the dev config
+  knob-package.yaml     reusable per-knob block (encoder + button), used by controls.yaml
   scan_hubs.yaml         throwaway tool to find a hub's BLE MAC
   secrets.yaml.example   template - copy to secrets.yaml and fill in
 external_components/lwp3_hub/   the custom LWP3 BLE component (protocol, hub lifecycle, number/button platforms)

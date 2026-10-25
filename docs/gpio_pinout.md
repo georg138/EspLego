@@ -1,4 +1,4 @@
-# GPIO pin plan (train-controller-dev.yaml)
+# GPIO pin plan (controls.yaml: train-controller.yaml and train-controller-dev.yaml)
 
 This is the single source of truth for which GPIO is used for what on the dev
 board, so future additions don't collide with anything already wired. Update
@@ -67,7 +67,7 @@ detent; pressing it stops that hub.
 Classic ESP32 deep-sleep wake is EXT0 (one pin) or EXT1 (several, but only
 `ANY_HIGH`/`ALL_LOW`). With the knobs active-high, **all 12 knob lines** (CLK, DT
 and SW of every knob) are RTC-capable pins and form the EXT1 wake set with
-`mode: ANY_HIGH` (`deep_sleep: esp32_ext1_wakeup` in `train-controller-dev.yaml`).
+`mode: ANY_HIGH` (`deep_sleep: esp32_ext1_wakeup` in `controls.yaml`).
 A press or a turn drives a line high and wakes the board. Each line's idle-low
 level comes from the KY-040's own pull-down, so ESPHome not setting any pull in
 EXT1 doesn't matter. The click that wakes the board is lost (it reboots), so the
