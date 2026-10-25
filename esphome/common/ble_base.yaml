@@ -8,8 +8,10 @@ esp32_ble_tracker:
     # multiple live ble_client connections and is a common cause of flaky
     # drops - keeping it low and explicit avoids that.
     active: false
-    interval: 320ms
-    window: 30ms
+    # Temporarily raised from 320ms/30ms (~9% duty) to 160ms/100ms (~62%) while
+    # debugging hubs that were never discovered. Lower again if connections drop.
+    interval: 160ms
+    window: 100ms
 
 esp32_ble:
   # One connection slot per `ble_client:` block (one per physical hub), plus

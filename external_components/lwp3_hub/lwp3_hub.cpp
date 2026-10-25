@@ -185,7 +185,7 @@ void LWP3Hub::handle_disconnected_() {
   this->attached_ports_ = 0;
   for (uint8_t port = 0; port < LWP3_MAX_PORTS; port++) {
     if (this->motors_[port] != nullptr) {
-      this->motors_[port]->publish_state(0);
+      this->motors_[port]->reset();
     }
   }
   for (const auto &listener : this->port_listeners_) {

@@ -1,0 +1,91 @@
+# Standalone bench test for ONE KY-040 knob: logs rotation, button presses and
+# every raw CLK/DT edge over serial. No Wi-Fi/BLE/API, no secrets needed.
+#
+# Flash:  esphome run esphome/knob-test.yaml      (then watch the serial log)
+#
+# Baseline wiring (active-low):  module + -> 3V3, GND -> GND,  active_low: "true"
+# Swapped wiring (active-high):  module + -> GND, GND -> 3V3,  active_low: "false"
+# CLK/DT/SW go to the pins below in both cases.
+
+substitutions:
+  clk_pin: GPIO32
+  dt_pin: GPIO25
+  sw_pin: GPIO39
+  active_low: "false"
+
+esphome:
+  name: knob-test
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+
+sensor:
+  - platform: rotary_encoder
+    id: knob
+    name: "Knob Position"
+    pin_a:
+      number: ${clk_pin}
+      allow_other_uses: true
+    pin_b:
+      number: ${dt_pin}
+      allow_other_uses: true
+    resolution: 2
+    on_clockwise:
+      - logger.log:
+          format: "[%u ms] CW  (value=%d)"
+          args: ['millis()', '(int) id(knob).state']
+    on_anticlockwise:
+      - logger.log:
+          format: "[%u ms] CCW (value=%d)"
+          args: ['millis()', '(int) id(knob).state']
+
+binary_sensor:
+  - platform: gpio
+    id: button
+    name: "Knob Button"
+    pin:
+      number: ${sw_pin}
+      mode:
+        input: true
+      inverted: ${active_low}
+    on_press:
+      - logger.log:
+          format: "[%u ms] BUTTON pressed"
+          args: ['millis()']
+    on_release:
+      - logger.log:
+          format: "[%u ms] BUTTON released"
+          args: ['millis()']
+
+  # Raw line levels, no filtering: shows bounce/noise as bursts of edges.
+  - platform: gpio
+    id: raw_clk
+    name: "Raw CLK"
+    internal: true
+    pin:
+      number: ${clk_pin}
+      mode:
+        input: true
+      allow_other_uses: true
+    on_state:
+      - logger.log:
+          format: "[%u ms]   raw CLK=%d"
+          args: ['millis()', 'x']
+  - platform: gpio
+    id: raw_dt
+    name: "Raw DT"
+    internal: true
+    pin:
+      number: ${dt_pin}
+      mode:
+        input: true
+      allow_other_uses: true
+    on_state:
+      - logger.log:
+          format: "[%u ms]   raw DT =%d"
+          args: ['millis()', 'x']

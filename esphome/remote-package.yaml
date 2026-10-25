@@ -1,7 +1,7 @@
 # Reusable per-remote package for a LEGO Powered Up Remote (Handset 88010).
 # Instantiated once per registered remote from the top-level config via
-# `packages:` + `vars:`. Vars: remote_id (remote1..remote4), remote_index
-# (1..4, matching the id), remote_mac, remote_name. Needs remote-slots.yaml
+# `packages:` + `vars:`. Vars: remote_id (remote1, remote2), remote_index
+# (1..2, matching the id), remote_mac, remote_name. Needs remote-slots.yaml
 # included once, and a `remote_activity` script in the top-level config.
 #
 # Only the first two remotes that connect are used: they claim a control slot

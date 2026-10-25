@@ -6,7 +6,7 @@
 substitutions:
   device_name: esplego-dev
   friendly_name: EspLego Dev
-  ble_max_connections: "8"  # 4 hubs + 4 registered remotes
+  ble_max_connections: "5"  # 5 hubs (remotes disabled)
   # Battery pack voltage (V) below which the status LED starts alternating
   # with red. Tune to the cells used (4xAA alkaline ~6 V fresh, ~4.4 V is low;
   # NiMH ~4.8 V nominal, use a lower value like 4.2).
@@ -22,6 +22,7 @@ packages:
       knob_id: knob1
       knob_name: "Knob 1"
       hub_id: hub1
+      alt_hub_id: hub5
       clk_pin: GPIO32
       dt_pin: GPIO25
       sw_pin: GPIO39
@@ -31,58 +32,47 @@ packages:
       knob_id: knob2
       knob_name: "Knob 2"
       hub_id: hub2
-      clk_pin: GPIO17
-      dt_pin: GPIO16
-      sw_pin: GPIO35
+      alt_hub_id: hub2
+      clk_pin: GPIO35
+      dt_pin: GPIO33
+      sw_pin: GPIO34
   knob3: !include
     file: knob-package.yaml
     vars:
       knob_id: knob3
       knob_name: "Knob 3"
       hub_id: hub3
-      clk_pin: GPIO22
-      dt_pin: GPIO21
-      sw_pin: GPIO33
+      alt_hub_id: hub3
+      clk_pin: GPIO27
+      dt_pin: GPIO26
+      sw_pin: GPIO14
   knob4: !include
     file: knob-package.yaml
     vars:
       knob_id: knob4
       knob_name: "Knob 4"
       hub_id: hub4
-      clk_pin: GPIO18
-      dt_pin: GPIO19
-      sw_pin: GPIO34
-  # LEGO Powered Up Remotes: 4 are registered but only the first two that
-  # connect are used (see remote-slots.yaml).
-  remote_slots: !include remote-slots.yaml
-  remote1: !include
-    file: remote-package.yaml
-    vars:
-      remote_id: remote1
-      remote_index: "1"
-      remote_mac: !secret remote1_mac
-      remote_name: "Remote 1"
-  remote2: !include
-    file: remote-package.yaml
-    vars:
-      remote_id: remote2
-      remote_index: "2"
-      remote_mac: !secret remote2_mac
-      remote_name: "Remote 2"
-  remote3: !include
-    file: remote-package.yaml
-    vars:
-      remote_id: remote3
-      remote_index: "3"
-      remote_mac: !secret remote3_mac
-      remote_name: "Remote 3"
-  remote4: !include
-    file: remote-package.yaml
-    vars:
-      remote_id: remote4
-      remote_index: "4"
-      remote_mac: !secret remote4_mac
-      remote_name: "Remote 4"
+      alt_hub_id: hub4
+      clk_pin: GPIO13
+      dt_pin: GPIO4
+      sw_pin: GPIO15
+  # LEGO Powered Up Remotes: DISABLED for now (re-enable once real remote MACs
+  # are in secrets.yaml, and raise ble_max_connections to 7; see remote-slots.yaml).
+  # remote_slots: !include remote-slots.yaml
+  # remote1: !include
+  #   file: remote-package.yaml
+  #   vars:
+  #     remote_id: remote1
+  #     remote_index: "1"
+  #     remote_mac: !secret remote1_mac
+  #     remote_name: "Remote 1"
+  # remote2: !include
+  #   file: remote-package.yaml
+  #   vars:
+  #     remote_id: remote2
+  #     remote_index: "2"
+  #     remote_mac: !secret remote2_mac
+  #     remote_name: "Remote 2"
 
 # Merges with the `esphome:` block in common/base.yaml. Arms the inactivity
 # timer on every boot - both the first boot and every wake-from-sleep reboot
@@ -95,15 +85,31 @@ esphome:
       - script.execute: inactivity_timer
 
 globals:
+  - id: coupled  # true = any knob drives every connected hub together (Couple button)
+    type: bool
+    initial_value: "false"
+  - id: ref_speed  # speed the user last set with a knob; master value while coupled
+    type: int
+    initial_value: "0"
   - id: sleep_warning  # true during the last 30 s before deep sleep -> LED blinks
     type: bool
     initial_value: "false"
+  - id: idle_s  # seconds idle so far (inactivity_timer)
+    type: int
+    initial_value: "0"
+  - id: idle_limit_s  # idle seconds before sleep: 120 if all motors stopped, else 600
+    type: int
+    initial_value: "600"
+  - id: was_running  # any motor nonzero at the last tick
+    type: bool
+    initial_value: "true"
   - id: going_to_sleep  # true once the final sleep sequence starts -> LED stays off
     type: bool
     initial_value: "false"
 
-# Dual-color (red/green, common cathode) status LED, ticking every 500 ms:
-#   green = at least one hub connected, amber (red+green) = no hub connected,
+# Dual-color (red/blue, common anode) status LED, ticking every 500 ms. The
+# output ids still say "green" (GPIO23) but that channel is the blue LED:
+#   blue = at least one hub connected, magenta (red+blue) = no hub connected,
 #   alternating with red every tick = battery low (hub state stays readable),
 #   on/off blink (2 ticks on, 2 off) = sleep warning, off = asleep.
 interval:
@@ -118,7 +124,8 @@ interval:
           static uint32_t tick = 0;
           tick++;
           bool hub = id(hub1_ble)->connected() || id(hub2_ble)->connected() ||
-                     id(hub3_ble)->connected() || id(hub4_ble)->connected();
+                     id(hub3_ble)->connected() || id(hub4_ble)->connected() ||
+                     id(hub5_ble)->connected();
           float volts = id(battery_v).state;  // NaN until the first reading
           bool low = !std::isnan(volts) && volts < ${battery_low_v};
           bool green = true;
@@ -143,10 +150,23 @@ external_components:
 ble_client:
   - mac_address: !secret hub1_mac
     id: hub1_ble
+    # Hub 1 and Hub 5 are alternatives: whichever connects first parks the other.
     on_connect:
       - output.turn_on: hub1_status_led
+      - switch.turn_off: hub5_ble_enabled
     on_disconnect:
       - output.turn_off: hub1_status_led
+      - switch.turn_on: hub5_ble_enabled
+  # Hub 5 is an alternative to Hub 1 (normally only one of the two is on):
+  # it shares Hub 1's status LED and Knob 1.
+  - mac_address: !secret hub5_mac
+    id: hub5_ble
+    on_connect:
+      - output.turn_on: hub1_status_led
+      - switch.turn_off: hub1_ble_enabled
+    on_disconnect:
+      - output.turn_off: hub1_status_led
+      - switch.turn_on: hub1_ble_enabled
   - mac_address: !secret hub2_mac
     id: hub2_ble
     on_connect:
@@ -186,6 +206,10 @@ switch:
     ble_client_id: hub4_ble
     name: "Hub 4 BLE Enabled"
     id: hub4_ble_enabled
+  - platform: ble_client
+    ble_client_id: hub5_ble
+    name: "Hub 5 BLE Enabled"
+    id: hub5_ble_enabled
 
 lwp3_hub:
   - id: hub1
@@ -209,6 +233,12 @@ lwp3_hub:
   - id: hub4
     name: "Hub 4"
     ble_client_id: hub4_ble
+    ports:
+      - A
+      - B
+  - id: hub5
+    name: "Hub 5"
+    ble_client_id: hub5_ble
     ports:
       - A
       - B
@@ -269,6 +299,20 @@ number:
     name: "Hub 4 Port B Power"
     id: hub4_port_b
     min_power: 10
+  # Hub 5: alternative to Hub 1 on Knob 1. Assumed to be a plain Powered Up
+  # Train Hub like Hubs 2-4 (min_power 10) - adjust if it is a Duplo base.
+  - platform: lwp3_hub
+    lwp3_hub_id: hub5
+    port: A
+    name: "Hub 5 Port A Power"
+    id: hub5_port_a
+    min_power: 10
+  - platform: lwp3_hub
+    lwp3_hub_id: hub5
+    port: B
+    name: "Hub 5 Port B Power"
+    id: hub5_port_b
+    min_power: 10
 
 # Duplo Train Base speaker (built-in, fixed device). Best guess is Port B
 # (motor is usually Port A / port 0, speaker Port B / port 1) - check the
@@ -321,49 +365,163 @@ sensor:
           send_every: 1
       - multiply: 2.0
 # Battery power (4xAA -> board VIN, no physical switch) + deep sleep: any knob's
-# button wakes the board (diode-ORed onto GPIO14, see deep_sleep below). Status
-# LEDs: GPIO26 (Hub 1 connected), GPIO27 (Hub 2 connected), GPIO13 (Hub 3
-# connected), GPIO4 (Hub 4 connected), GPIO23 + GPIO5 (green/red dual-color
+# button press or rotation wakes the board (EXT1 ANY_HIGH, see deep_sleep below). Status
+# LEDs: GPIO22 (Hub 1 connected), GPIO21 (Hub 2 connected), GPIO17 (Hub 3
+# connected), GPIO16 (Hub 4 connected), GPIO23 + GPIO5 (green/red dual-color
 # status LED) - see docs/gpio_pinout.md for the full pin map.
 output:
   - platform: gpio
     id: hub1_status_led
-    pin: GPIO26
+    pin: GPIO22
   - platform: gpio
     id: hub2_status_led
-    pin: GPIO27
+    pin: GPIO21
   - platform: gpio
     id: hub3_status_led
-    pin: GPIO13
+    pin: GPIO17
   - platform: gpio
     id: hub4_status_led
-    pin: GPIO4
-  # Dual-color status LED (common cathode, each color through its own ~330 ohm
+    pin: GPIO16
+  # Dual-color status LED (common anode to 3.3V, wired active-LOW so the outputs
+  # are inverted; each color through its own ~330 ohm
   # resistor): green on GPIO23, red on GPIO5.
   - platform: gpio
     id: status_green
-    pin: GPIO23
+    pin:
+      number: GPIO23
+      inverted: true
   - platform: gpio
     id: status_red
-    pin: GPIO5
+    pin:
+      number: GPIO5
+      inverted: true
+
+# Extra buttons on non-RTC pins (button to GND, internal pull-up, active-low):
+# they work while the board is awake; only the knobs wake it from deep sleep.
+binary_sensor:
+  - platform: gpio
+    id: couple_button
+    name: "Couple Hubs Button"
+    pin:
+      number: GPIO18
+      mode: { input: true, pullup: true }
+      inverted: true
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - lambda: |-
+          id(coupled) = !id(coupled);
+          id(knob1_zero_pos) = 0;
+          id(knob2_zero_pos) = 0;
+          id(knob3_zero_pos) = 0;
+          id(knob4_zero_pos) = 0;
+      # Sync: coupling sets every connected hub to the last knob speed.
+      - if:
+          condition:
+            lambda: 'return id(coupled);'
+          then:
+            - script.execute:
+                id: apply_all
+                speed: !lambda 'return id(ref_speed);'
+      - script.execute: inactivity_timer
+  - platform: gpio
+    id: stop_all_button
+    name: "Stop All Button"
+    pin:
+      number: GPIO19
+      mode: { input: true, pullup: true }
+      inverted: true
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - script.execute: stop_all
+      - script.execute: inactivity_timer
+  - platform: template
+    name: "Hubs Coupled"
+    lambda: 'return id(coupled);'
 
 deep_sleep:
   id: deep_sleep_1
-  # Any knob's button wakes the board: each of the four SW lines goes through
-  # a 1N4148 (anode on this pin, cathode on the knob's SW pad) onto this one
-  # dedicated wake line, so pressing any button pulls it low. Buttons stay
-  # active-low and the KY-040s unmodified (an active-high rewrite lost the
-  # module's CLK/DT debounce and gave noisy readings). The pull-up is the ESP32's
-  # internal one, no external resistor; ESPHome's EXT0 path holds it through
-  # sleep. Knob rotation does not wake the device.
-  wakeup_pin:
-    number: GPIO14
-    mode:
-      input: true
-      pullup: true
-    inverted: true  # wake on LOW
+  # Any knob wakes the board, by button press or by rotation: all 12 knob lines
+  # (CLK, DT and SW of every knob) are RTC pins and form the EXT1 wake set.
+  # Knobs are wired ACTIVE-HIGH (module + to GND, module GND to 3.3V, so the
+  # module's own resistors act as pull-downs and every line idles low), hence
+  # ANY_HIGH, the only polarity the classic ESP32 offers for several pins. No
+  # diodes, no internal or external pulls. The turn that wakes the board is lost
+  # (it reboots), so the first click only wakes, it doesn't change speed.
+  esp32_ext1_wakeup:
+    pins:
+      - number: GPIO32
+        allow_other_uses: true
+      - number: GPIO25
+        allow_other_uses: true
+      - number: GPIO39
+        allow_other_uses: true
+      - number: GPIO35
+        allow_other_uses: true
+      - number: GPIO33
+        allow_other_uses: true
+      - number: GPIO34
+        allow_other_uses: true
+      - number: GPIO27
+        allow_other_uses: true
+      - number: GPIO26
+        allow_other_uses: true
+      - number: GPIO14
+        allow_other_uses: true
+      - number: GPIO13
+        allow_other_uses: true
+      - number: GPIO4
+        allow_other_uses: true
+      - number: GPIO15
+        allow_other_uses: true
+    mode: ANY_HIGH
 
 script:
+  # Sets every CONNECTED hub's ports A and B to `speed` (each number still applies
+  # its own min_power / headlight handling). Disconnected hubs are skipped so
+  # they don't publish a stale speed.
+  - id: apply_all
+    mode: queued
+    parameters:
+      speed: int
+    then:
+      - lambda: |-
+          auto apply = [&](bool connected, auto *a, auto *b) {
+            if (!connected) return;
+            a->make_call().set_value(speed).perform();
+            b->make_call().set_value(speed).perform();
+          };
+          apply(id(hub1_ble)->connected(), id(hub1_port_a), id(hub1_port_b));
+          apply(id(hub2_ble)->connected(), id(hub2_port_a), id(hub2_port_b));
+          apply(id(hub3_ble)->connected(), id(hub3_port_a), id(hub3_port_b));
+          apply(id(hub4_ble)->connected(), id(hub4_port_a), id(hub4_port_b));
+          apply(id(hub5_ble)->connected(), id(hub5_port_a), id(hub5_port_b));
+  # Zero every hub's motors unconditionally and drop manual headlight overrides.
+  # Does NOT touch inactivity_timer: the sleep sequence calls this from inside it.
+  - id: stop_all
+    then:
+      - lambda: |-
+          id(hub1_port_a)->make_call().set_value(0).perform();
+          id(hub1_port_b)->make_call().set_value(0).perform();
+          id(hub2_port_a)->make_call().set_value(0).perform();
+          id(hub2_port_b)->make_call().set_value(0).perform();
+          id(hub3_port_a)->make_call().set_value(0).perform();
+          id(hub3_port_b)->make_call().set_value(0).perform();
+          id(hub4_port_a)->make_call().set_value(0).perform();
+          id(hub4_port_b)->make_call().set_value(0).perform();
+          id(hub5_port_a)->make_call().set_value(0).perform();
+          id(hub5_port_b)->make_call().set_value(0).perform();
+          id(hub1_port_b)->set_light_override(-1);
+          id(hub2_port_b)->set_light_override(-1);
+          id(hub3_port_b)->set_light_override(-1);
+          id(hub4_port_b)->set_light_override(-1);
+          id(hub5_port_b)->set_light_override(-1);
+          id(ref_speed) = 0;
+          id(knob1_zero_pos) = 0;
+          id(knob2_zero_pos) = 0;
+          id(knob3_zero_pos) = 0;
+          id(knob4_zero_pos) = 0;
   # Called by remote-package.yaml on every remote button press - keeps the
   # board awake while someone is using a remote.
   - id: remote_activity
@@ -374,22 +532,41 @@ script:
     # the delay below, so sleep only actually happens after a real idle period.
     mode: restart
     then:
-      - lambda: id(sleep_warning) = false;
-      - delay: 570s  # 9.5 min idle, then 30 s of sleep warning = 10 min total
+      - lambda: |-
+          id(sleep_warning) = false;
+          id(idle_s) = 0;
+          id(idle_limit_s) = 600;
+          id(was_running) = true;
+      # Tick once a second. Idle limit is 2 min while every motor is at 0 and
+      # 10 min while any is running; the last 30 s of it is the sleep warning.
+      # Any change between "running" and "all stopped" restarts the count, so
+      # stopping the last train always gives a full 2 min (not an instant sleep).
+      - while:
+          condition:
+            lambda: 'return id(idle_s) < id(idle_limit_s);'
+          then:
+            - delay: 1s
+            - lambda: |-
+                bool running =
+                    (int) id(hub1_port_a).state != 0 || (int) id(hub1_port_b).state != 0 ||
+                    (int) id(hub2_port_a).state != 0 || (int) id(hub2_port_b).state != 0 ||
+                    (int) id(hub3_port_a).state != 0 || (int) id(hub3_port_b).state != 0 ||
+                    (int) id(hub4_port_a).state != 0 || (int) id(hub4_port_b).state != 0 ||
+                    (int) id(hub5_port_a).state != 0 || (int) id(hub5_port_b).state != 0;
+                if (running != id(was_running)) {
+                  id(was_running) = running;
+                  id(idle_s) = 0;
+                } else {
+                  id(idle_s)++;
+                }
+                id(idle_limit_s) = running ? 600 : 120;
+                id(sleep_warning) = id(idle_s) >= id(idle_limit_s) - 30;
       - lambda: id(sleep_warning) = true;
-      - delay: 30s
       # Safety: zero every motor before sleeping regardless of whether a train
       # was left running - LEGO hubs don't auto-stop just because the BLE
       # link drops, so skipping this could leave a train running unattended
       # until the hub's own battery dies.
-      - number.set: { id: hub1_port_a, value: 0 }
-      - number.set: { id: hub1_port_b, value: 0 }
-      - number.set: { id: hub2_port_a, value: 0 }
-      - number.set: { id: hub2_port_b, value: 0 }
-      - number.set: { id: hub3_port_a, value: 0 }
-      - number.set: { id: hub3_port_b, value: 0 }
-      - number.set: { id: hub4_port_a, value: 0 }
-      - number.set: { id: hub4_port_b, value: 0 }
+      - script.execute: stop_all
       - delay: 500ms  # let the write-without-response commands actually reach the hubs before the radio powers down
       - lambda: id(going_to_sleep) = true;
       - output.turn_off: status_green

@@ -1,42 +1,105 @@
 # Reusable per-knob package: one KY-040 rotary encoder + push button that
 # drives ONE hub (both its ports A/B). Instantiated once per physical knob from
 # train-controller-dev.yaml via `packages:` + `vars:`. Vars: knob_id, knob_name,
-# hub_id (hub1..hub4), clk_pin, dt_pin, sw_pin. Needs an `inactivity_timer`
+# hub_id (hub1..hub4), alt_hub_id, clk_pin, dt_pin, sw_pin. Needs an `inactivity_timer`
 # script in the top-level config.
 #
-# Wiring is ACTIVE-LOW: module `+` to 3.3V, GND to GND, CLK/DT/SW to the pins.
-# The module's own pull-ups hold all three lines high, so no internal or
-# external resistors are needed (which also makes the input-only pins 34-39 fine).
-# Do not rewire the encoder common to 3.3V (active-high): that defeated the
-# module's onboard CLK/DT debounce and gave noisy readings - see
-# docs/gpio_pinout.md.
+# Wiring is ACTIVE-HIGH: module `+` to GND and module GND to 3.3V (the two
+# power pins swapped), CLK/DT/SW to the pins. The module's own resistors then act
+# as pull-downs and keep its onboard debounce, so no internal or external
+# resistors are needed (input-only pins 34-39 are fine). Bench-tested clean with
+# esphome/knob-test.yaml. All three lines (CLK/DT/SW) are RTC pins and are in the
+# EXT1 deep-sleep wake set, so both turning and pressing wake the board.
+#
+# `alt_hub_id` is an alternative hub that shares this knob (hub1/hub5: only one
+# of the two is normally powered on). Set it equal to `hub_id` for a knob with
+# no alternative. The knob drives `alt_hub_id` only while it is connected and
+# `hub_id` is not; otherwise it drives `hub_id`.
 #
 # Turning steps the hub's CURRENT speed (read back from its number entities)
 # by 1 per detent, so the knob stays in sync when the same hub is also moved by
-# a remote or Home Assistant. Pressing the button stops the hub. Every action
-# restarts the inactivity timer. Waking from deep sleep is NOT done here: the
-# button is diode-ORed onto the shared wake pin (see deep_sleep in the top-level
-# config and docs/gpio_pinout.md).
+# a remote or Home Assistant. Pressing the button stops the hub (and puts a
+# port-B headlight back to automatic); turning while pushed dims that light. Every action
+# restarts the inactivity timer. Waking from deep sleep is NOT done here: the SW
+# pins are the EXT1 wake set (see deep_sleep in the top-level config and
+# docs/gpio_pinout.md).
+
+# Zero detent: the knob has a +-2 tick dead zone around 0 so stopping is easy to
+# hit without overshooting into reverse. While the hub is at 0, turns just walk
+# `${knob_id}_zero_pos` within -2..2; only a turn past either end starts the
+# motor. Coming back to 0 from one side lands on that side's edge (-2 from
+# below, +2 from above), so you still pass through the full zero band. The
+# button resets it to the centre.
+globals:
+  - id: ${knob_id}_zero_pos
+    type: int
+    initial_value: "0"
+  - id: ${knob_id}_rotated_held  # knob was turned while pushed -> that press is not a click
+    type: bool
+    initial_value: "false"
+
+script:
+  # dir: +1 clockwise, -1 anticlockwise. Steps whichever of hub_id/alt_hub_id
+  # is currently active (see header).
+  - id: ${knob_id}_step
+    mode: queued
+    parameters:
+      dir: int
+    then:
+      - lambda: |-
+          const int zero_band = 2;
+          const bool use_alt = id(${alt_hub_id}_ble).connected() && !id(${hub_id}_ble).connected();
+          auto *pa = use_alt ? id(${alt_hub_id}_port_a) : id(${hub_id}_port_a);
+          auto *pb = use_alt ? id(${alt_hub_id}_port_b) : id(${hub_id}_port_b);
+          // Rotate while pushed: dim the active hub's light by hand instead of
+          // changing speed (only hubs whose port B is `light: true`).
+          if (id(${knob_id}_button).state) {
+            if (pb->is_light()) {
+              pb->set_light_override(std::max(0, std::min(100, (int) pb->state + dir * 10)));
+              id(${knob_id}_rotated_held) = true;
+            }
+            return;
+          }
+          // Coupled: the shared reference speed is the master (this knob's own hub
+          // may be disconnected); otherwise step this hub's current speed.
+          int s = id(coupled) ? id(ref_speed) : (int) pa->state;
+          int &z = id(${knob_id}_zero_pos);
+          if (s == 0 && dir * z < zero_band) {
+            z += dir;
+            return;
+          }
+          int v = std::max(-100, std::min(100, s + dir));
+          id(ref_speed) = v;
+          if (id(coupled)) {
+            id(apply_all)->execute(v);
+          } else {
+            pa->make_call().set_value(v).perform();
+            pb->make_call().set_value(v).perform();
+          }
+          // Landed on 0: enter the zero band at the edge facing the side we came from.
+          if ((id(coupled) ? v : (int) pa->state) == 0) z = -dir * zero_band;
 
 sensor:
   - platform: rotary_encoder
     id: ${knob_id}
     name: "${knob_name} Position"
     internal: true  # raw counter, not meaningful - the hub's own number entities carry the speed
-    pin_a: ${clk_pin}
-    pin_b: ${dt_pin}
+    pin_a:
+      number: ${clk_pin}
+      allow_other_uses: true  # also in deep_sleep esp32_ext1_wakeup
+    pin_b:
+      number: ${dt_pin}
+      allow_other_uses: true
     resolution: 2  # pulses per detent - tune to taste once you feel the turn rate
     on_clockwise:
-      - lambda: |-
-          int v = std::min(100, (int) id(${hub_id}_port_a).state + 1);
-          id(${hub_id}_port_a).make_call().set_value(v).perform();
-          id(${hub_id}_port_b).make_call().set_value(v).perform();
+      - script.execute:
+          id: ${knob_id}_step
+          dir: 1
       - script.execute: inactivity_timer
     on_anticlockwise:
-      - lambda: |-
-          int v = std::max(-100, (int) id(${hub_id}_port_a).state - 1);
-          id(${hub_id}_port_a).make_call().set_value(v).perform();
-          id(${hub_id}_port_b).make_call().set_value(v).perform();
+      - script.execute:
+          id: ${knob_id}_step
+          dir: -1
       - script.execute: inactivity_timer
 
 binary_sensor:
@@ -47,8 +110,29 @@ binary_sensor:
       number: ${sw_pin}
       mode:
         input: true
-      inverted: true
+      allow_other_uses: true  # also listed in deep_sleep esp32_ext1_wakeup
+    on_press:
+      - lambda: id(${knob_id}_rotated_held) = false;
     on_click:
-      - number.set: { id: "${hub_id}_port_a", value: 0 }
-      - number.set: { id: "${hub_id}_port_b", value: 0 }
+      # A press that was used to dim the light (rotate while pushed) must not
+      # also stop the train.
+      - if:
+          condition:
+            lambda: 'return !id(${knob_id}_rotated_held);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(coupled);'
+                then:
+                  - script.execute: stop_all  # coupled: a click stops every hub
+                else:
+                  - lambda: id(${knob_id}_zero_pos) = 0;
+                  - number.set: { id: "${hub_id}_port_a", value: 0 }
+                  - number.set: { id: "${hub_id}_port_b", value: 0 }
+                  - number.set: { id: "${alt_hub_id}_port_a", value: 0 }
+                  - number.set: { id: "${alt_hub_id}_port_b", value: 0 }
+                  # Back to automatic headlight (after the 0 above, so it ends up off).
+                  - lambda: |-
+                      id(${hub_id}_port_b)->set_light_override(-1);
+                      id(${alt_hub_id}_port_b)->set_light_override(-1);
       - script.execute: inactivity_timer

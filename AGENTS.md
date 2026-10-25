@@ -40,7 +40,7 @@ esphome run esphome/train-controller-dev.yaml
 
 Two top-level configs:
 - `esphome/train-controller-dev.yaml` — the active single-board dev/bring-up
-  config (currently 4 hubs + 4 remotes + 4 rotary encoder knobs + status LEDs + deep sleep).
+  config (currently 5 hubs (hub1/hub5 are mutually exclusive alternatives sharing knob 1 and its status LED; remotes disabled) + 4 rotary encoder knobs + status LEDs + deep sleep).
   This is the one that gets changed and tested first.
 - `esphome/train-controller.yaml` — the full 4-hub build, using
   `esphome/hub-package.yaml` as a reusable per-hub template via
@@ -152,17 +152,14 @@ against LEGO's publicly-documented protocol.
   validation check.)
 - Classic ESP32 (`esp32dev`) only supports `ANY_HIGH` or `ALL_LOW` for
   multi-pin deep-sleep wake (`esp32_ext1_wakeup`) — `ANY_LOW` is
-  newer-chip-only. An active-low (pull-up, switch-to-GND) button/encoder
-  wiring can't use `ANY_HIGH` cleanly without rewiring to active-high
-  (pull-down, switch-to-3.3V) — which in turn can defeat a KY-040 module's
-  onboard debounce filtering if its `+`/VCC pin is left disconnected to
-  avoid the module's own pull-ups fighting the new pull-down. This project
-  tried that rewire for knob-rotation-wake and reverted it after noisy
-  readings; the knobs stay active-low. Instead, every knob button is
-  diode-ORed (1N4148, anode on the wake pin) onto one dedicated GPIO14 that
-  is the EXT0 `wakeup_pin` with its internal pull-up, so any knob button
-  wakes the device with no external resistors (see `docs/gpio_pinout.md`).
+  newer-chip-only, so the pins must be active-high. The knobs are wired
+  active-high by swapping the KY-040's power pins (module `+` to GND, module
+  GND to 3.3V): the module's own resistors become pull-downs and its onboard
+  debounce keeps working, so rotation and buttons read cleanly (verified with
+  `esphome/knob-test.yaml`). All 12 knob lines (CLK/DT/SW, all RTC pins; hub status LEDs
+  were moved to non-RTC pins to make room) are the EXT1 `ANY_HIGH` wake set, so
+  turning or pressing any knob wakes the device with no extra parts. Leaving `+` open while tying the common to 3.3V instead is what
+  gave noisy readings earlier - don't do that (see `docs/gpio_pinout.md`).
 - GPIO34-39 are input-only (no internal pull resistor) — fine for pure
   inputs (encoder/button lines) because the KY-040 module supplies its own
-  pull-ups, not usable for outputs (LEDs) or as a wake pin with an internal
-  pull.
+  pull-downs, not usable for outputs (LEDs) or with an internal pull.

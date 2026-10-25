@@ -1,7 +1,7 @@
 # Shared state for the LEGO Remote "slots". Include ONCE from each top-level
 # config, alongside one remote-package.yaml instance per registered remote.
 #
-# There are only two control slots. The first two remotes that connect claim
+# There are only two control slots. The registered remotes (two) claim
 # them (slot 1 drives hub1 + hub2, slot 2 drives hub3 + hub4); any further
 # remote that connects is disconnected again and ignored until a slot frees
 # up, at which point it is allowed to retry (see remotes_rearm).
@@ -51,5 +51,3 @@ script:
     then:
       - script.execute: remote1_rearm
       - script.execute: remote2_rearm
-      - script.execute: remote3_rearm
-      - script.execute: remote4_rearm

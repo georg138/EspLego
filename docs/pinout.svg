@@ -1,152 +1,126 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1190 1010" width="1190" height="1010" font-family="Helvetica,Arial,sans-serif">
-<rect width="1190" height="1010" fill="#fff"/>
-<text x="595.0" y="34" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">EspLego – D1 mini ESP32 pin connections</text>
-<text x="595.0" y="56" text-anchor="middle" font-size="12" fill="#555">every header pin in physical order (top = USB end) · columns are staggered so each wire has its own lane · source: docs/gpio_pinout.md</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 1010" width="1060" height="1010" font-family="Helvetica,Arial,sans-serif">
+<rect width="1060" height="1010" fill="#fff"/>
+<text x="530.0" y="34" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">EspLego – D1 mini ESP32 pin connections</text>
+<text x="530.0" y="56" text-anchor="middle" font-size="12" fill="#555">every header pin in physical order (top = USB end) · columns are staggered so each wire has its own lane · source: docs/gpio_pinout.md</text>
 <rect x="408" y="70" width="394" height="744" rx="14" fill="#f1f3f4" stroke="#333" stroke-width="2"/>
 <rect x="555" y="62" width="100" height="20" rx="4" fill="#bbb" stroke="#333"/><text x="605" y="77" text-anchor="middle" font-size="11" fill="#222">USB</text>
 <text x="605" y="640" text-anchor="middle" font-size="15" font-weight="bold" fill="#444">D1 mini</text>
 <text x="605" y="658" text-anchor="middle" font-size="15" font-weight="bold" fill="#444">ESP32</text>
-<line x1="420" y1="172" x2="200" y2="172" stroke="#e0a100" stroke-width="3"/>
+<line x1="420" y1="172" x2="200" y2="172" stroke="#3a9d5d" stroke-width="3"/>
 <line x1="420" y1="244" x2="200" y2="244" stroke="#e4572e" stroke-width="3"/>
 <line x1="420" y1="316" x2="200" y2="316" stroke="#e4572e" stroke-width="3"/>
-<line x1="420" y1="460" x2="200" y2="460" stroke="#e0a100" stroke-width="3"/>
+<line x1="420" y1="460" x2="200" y2="460" stroke="#8e5bd9" stroke-width="3"/>
 <line x1="420" y1="604" x2="200" y2="604" stroke="#9aa0a6" stroke-width="3" stroke-dasharray="4 3"/>
-<line x1="500" y1="280" x2="200" y2="280" stroke="#3a9d5d" stroke-width="3"/>
-<line x1="500" y1="352" x2="200" y2="352" stroke="#3a9d5d" stroke-width="3"/>
-<line x1="500" y1="424" x2="200" y2="424" stroke="#2e86ab" stroke-width="3"/>
-<line x1="500" y1="496" x2="200" y2="496" stroke="#2e86ab" stroke-width="3"/>
-<line x1="500" y1="712" x2="200" y2="712" stroke="#9aa0a6" stroke-width="3" stroke-dasharray="4 3"/>
-<line x1="710" y1="208" x2="960" y2="208" stroke="#12a3a3" stroke-width="3"/>
-<line x1="710" y1="280" x2="960" y2="280" stroke="#e0a100" stroke-width="3"/>
-<line x1="710" y1="352" x2="960" y2="352" stroke="#8e5bd9" stroke-width="3"/>
-<line x1="710" y1="424" x2="960" y2="424" stroke="#8e5bd9" stroke-width="3"/>
-<line x1="710" y1="496" x2="960" y2="496" stroke="#2fa84f" stroke-width="3"/>
-<line x1="710" y1="568" x2="960" y2="568" stroke="#d63031" stroke-width="3"/>
-<line x1="710" y1="712" x2="960" y2="712" stroke="#e0a100" stroke-width="3"/>
-<line x1="790" y1="244" x2="960" y2="244" stroke="#e4572e" stroke-width="3"/>
-<line x1="790" y1="316" x2="960" y2="316" stroke="#2e86ab" stroke-width="3"/>
-<line x1="790" y1="388" x2="960" y2="388" stroke="#3a9d5d" stroke-width="3"/>
-<line x1="790" y1="460" x2="960" y2="460" stroke="#8e5bd9" stroke-width="3"/>
-<polyline points="790,532 860,532 860,230" fill="none" stroke="#222" stroke-width="3"/>
-<circle cx="860" cy="532" r="4" fill="#222"/>
-<text x="870" y="536" font-size="12" font-weight="bold" fill="#111">W = wake bus (EXT0, int. pull-up)</text>
-<polyline points="860,231 876,231" fill="none" stroke="#222" stroke-width="2"/>
-<polygon points="876,224 876,238 892,231" fill="#222"/>
-<line x1="892" y1="223" x2="892" y2="239" stroke="#222" stroke-width="3"/>
-<polyline points="892,231 910,231 910,244" fill="none" stroke="#222" stroke-width="2"/>
-<circle cx="910" cy="244" r="4" fill="#222"/><circle cx="860" cy="231" r="4" fill="#222"/>
-<text x="884" y="222" text-anchor="middle" font-size="10" fill="#222">1N4148</text>
-<polyline points="860,303 876,303" fill="none" stroke="#222" stroke-width="2"/>
-<polygon points="876,296 876,310 892,303" fill="#222"/>
-<line x1="892" y1="295" x2="892" y2="311" stroke="#222" stroke-width="3"/>
-<polyline points="892,303 910,303 910,316" fill="none" stroke="#222" stroke-width="2"/>
-<circle cx="910" cy="316" r="4" fill="#222"/><circle cx="860" cy="303" r="4" fill="#222"/>
-<text x="884" y="294" text-anchor="middle" font-size="10" fill="#222">1N4148</text>
-<polyline points="860,375 876,375" fill="none" stroke="#222" stroke-width="2"/>
-<polygon points="876,368 876,382 892,375" fill="#222"/>
-<line x1="892" y1="367" x2="892" y2="383" stroke="#222" stroke-width="3"/>
-<polyline points="892,375 910,375 910,388" fill="none" stroke="#222" stroke-width="2"/>
-<circle cx="910" cy="388" r="4" fill="#222"/><circle cx="860" cy="375" r="4" fill="#222"/>
-<text x="884" y="366" text-anchor="middle" font-size="10" fill="#222">1N4148</text>
-<polyline points="860,447 876,447" fill="none" stroke="#222" stroke-width="2"/>
-<polygon points="876,440 876,454 892,447" fill="#222"/>
-<line x1="892" y1="439" x2="892" y2="455" stroke="#222" stroke-width="3"/>
-<polyline points="892,447 910,447 910,460" fill="none" stroke="#222" stroke-width="2"/>
-<circle cx="910" cy="460" r="4" fill="#222"/><circle cx="860" cy="447" r="4" fill="#222"/>
-<text x="884" y="438" text-anchor="middle" font-size="10" fill="#222">1N4148</text>
+<line x1="500" y1="280" x2="200" y2="280" stroke="#e0a100" stroke-width="3"/>
+<line x1="500" y1="352" x2="200" y2="352" stroke="#e0a100" stroke-width="3"/>
+<line x1="500" y1="424" x2="200" y2="424" stroke="#e0a100" stroke-width="3"/>
+<line x1="500" y1="496" x2="200" y2="496" stroke="#e0a100" stroke-width="3"/>
+<line x1="500" y1="712" x2="200" y2="712" stroke="#8e5bd9" stroke-width="3"/>
+<line x1="710" y1="208" x2="830" y2="208" stroke="#12a3a3" stroke-width="3"/>
+<line x1="710" y1="280" x2="830" y2="280" stroke="#3a9d5d" stroke-width="3"/>
+<line x1="710" y1="352" x2="830" y2="352" stroke="#9aa0a6" stroke-width="3" stroke-dasharray="4 3"/>
+<line x1="710" y1="424" x2="830" y2="424" stroke="#9aa0a6" stroke-width="3" stroke-dasharray="4 3"/>
+<line x1="710" y1="496" x2="830" y2="496" stroke="#2fa84f" stroke-width="3"/>
+<line x1="710" y1="568" x2="830" y2="568" stroke="#d63031" stroke-width="3"/>
+<line x1="710" y1="712" x2="830" y2="712" stroke="#8e5bd9" stroke-width="3"/>
+<line x1="790" y1="244" x2="830" y2="244" stroke="#e4572e" stroke-width="3"/>
+<line x1="790" y1="316" x2="830" y2="316" stroke="#2e86ab" stroke-width="3"/>
+<line x1="790" y1="388" x2="830" y2="388" stroke="#2e86ab" stroke-width="3"/>
+<line x1="790" y1="460" x2="830" y2="460" stroke="#2e86ab" stroke-width="3"/>
+<line x1="790" y1="532" x2="830" y2="532" stroke="#3a9d5d" stroke-width="3"/>
 <text x="402" y="104" text-anchor="end" font-size="11" fill="#888">ground</text>
-<rect x="20" y="157" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="176" font-size="12.5" font-weight="bold" fill="#111">Hub 2 status LED</text>
-<rect x="20" y="229" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="30" y="248" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · DT</text>
-<rect x="20" y="301" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="30" y="320" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · CLK</text>
+<rect x="20" y="157" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="30" y="171" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · CLK</text><text x="30" y="183" font-size="9.5" fill="#666">EXT1 wake pin</text>
+<rect x="20" y="229" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="30" y="243" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · DT</text><text x="30" y="255" font-size="9.5" fill="#666">EXT1 wake pin</text>
+<rect x="20" y="301" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="30" y="315" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · CLK</text><text x="30" y="327" font-size="9.5" fill="#666">EXT1 wake pin</text>
 <text x="402" y="392" text-anchor="end" font-size="11" fill="#888">strapping, avoid</text>
-<rect x="20" y="445" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="464" font-size="12.5" font-weight="bold" fill="#111">Hub 4 status LED</text>
+<rect x="20" y="445" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="30" y="459" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · DT</text><text x="30" y="471" font-size="9.5" fill="#666">EXT1 wake pin</text>
 <text x="402" y="536" text-anchor="end" font-size="11" fill="#888">strapping, avoid</text>
-<rect x="20" y="589" width="180" height="30" rx="6" fill="#fff" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="4 3"/><text x="30" y="603" font-size="12.5" font-weight="bold" fill="#111">free</text><text x="30" y="615" font-size="9.5" fill="#666">strapping pin</text>
+<rect x="20" y="589" width="180" height="30" rx="6" fill="#fff" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="4 3"/><text x="30" y="603" font-size="12.5" font-weight="bold" fill="#111">free</text><text x="30" y="615" font-size="9.5" fill="#666">strapping pin, RTC</text>
 <text x="402" y="680" text-anchor="end" font-size="11" fill="#888">flash SD1</text>
 <text x="402" y="752" text-anchor="end" font-size="11" fill="#888">flash CLK</text>
 <text x="494" y="140" text-anchor="end" font-size="11" fill="#888">UART0 console</text>
 <text x="494" y="212" text-anchor="end" font-size="11" fill="#888">UART0 console</text>
-<rect x="20" y="265" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="30" y="284" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · CLK</text>
-<rect x="20" y="337" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="30" y="356" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · DT</text>
-<rect x="20" y="409" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="30" y="428" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · CLK</text>
-<rect x="20" y="481" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="30" y="500" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · DT</text>
+<rect x="20" y="265" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="284" font-size="12.5" font-weight="bold" fill="#111">Hub 1 status LED</text>
+<rect x="20" y="337" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="356" font-size="12.5" font-weight="bold" fill="#111">Hub 2 status LED</text>
+<rect x="20" y="409" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="428" font-size="12.5" font-weight="bold" fill="#111">Hub 3 status LED</text>
+<rect x="20" y="481" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="30" y="500" font-size="12.5" font-weight="bold" fill="#111">Hub 4 status LED</text>
 <text x="494" y="572" text-anchor="end" font-size="11" fill="#888">ground</text>
 <text x="494" y="644" text-anchor="end" font-size="11" fill="#888">4xAA in</text>
-<rect x="20" y="697" width="180" height="30" rx="6" fill="#fff" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="4 3"/><text x="30" y="711" font-size="12.5" font-weight="bold" fill="#111">free</text><text x="30" y="723" font-size="9.5" fill="#666">strapping pin</text>
+<rect x="20" y="697" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="30" y="711" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · SW</text><text x="30" y="723" font-size="9.5" fill="#666">EXT1 wake pin (strapping)</text>
 <text x="494" y="788" text-anchor="end" font-size="11" fill="#888">flash SD0</text>
 <text x="716" y="140" font-size="11" fill="#888">reset</text>
-<rect x="960" y="193" width="180" height="30" rx="6" fill="#fff" stroke="#12a3a3" stroke-width="2.5"/><text x="970" y="207" font-size="12.5" font-weight="bold" fill="#111">Battery ADC</text><text x="970" y="219" font-size="9.5" fill="#666">100k/100k divider from VIN</text>
-<rect x="960" y="265" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="970" y="284" font-size="12.5" font-weight="bold" fill="#111">Hub 1 status LED</text>
-<rect x="960" y="337" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="970" y="356" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · CLK</text>
-<rect x="960" y="409" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="970" y="428" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · DT</text>
-<rect x="960" y="481" width="180" height="30" rx="6" fill="#fff" stroke="#2fa84f" stroke-width="2.5"/><text x="970" y="495" font-size="12.5" font-weight="bold" fill="#111">Status LED green</text><text x="970" y="507" font-size="9.5" fill="#666">dual-colour case LED</text>
-<rect x="960" y="553" width="180" height="30" rx="6" fill="#fff" stroke="#d63031" stroke-width="2.5"/><text x="970" y="567" font-size="12.5" font-weight="bold" fill="#111">Status LED red</text><text x="970" y="579" font-size="9.5" fill="#666">strapping pin, LED output ok</text>
+<rect x="830" y="193" width="180" height="30" rx="6" fill="#fff" stroke="#12a3a3" stroke-width="2.5"/><text x="840" y="207" font-size="12.5" font-weight="bold" fill="#111">Battery ADC</text><text x="840" y="219" font-size="9.5" fill="#666">100k/100k divider from VIN</text>
+<rect x="830" y="265" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="840" y="279" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · DT</text><text x="840" y="291" font-size="9.5" fill="#666">EXT1 wake pin</text>
+<rect x="830" y="337" width="180" height="30" rx="6" fill="#fff" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="4 3"/><text x="840" y="351" font-size="12.5" font-weight="bold" fill="#111">free</text><text x="840" y="363" font-size="9.5" fill="#666">free</text>
+<rect x="830" y="409" width="180" height="30" rx="6" fill="#fff" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="4 3"/><text x="840" y="423" font-size="12.5" font-weight="bold" fill="#111">free</text><text x="840" y="435" font-size="9.5" fill="#666">free</text>
+<rect x="830" y="481" width="180" height="30" rx="6" fill="#fff" stroke="#2fa84f" stroke-width="2.5"/><text x="840" y="495" font-size="12.5" font-weight="bold" fill="#111">Status LED green</text><text x="840" y="507" font-size="9.5" fill="#666">dual-colour case LED</text>
+<rect x="830" y="553" width="180" height="30" rx="6" fill="#fff" stroke="#d63031" stroke-width="2.5"/><text x="840" y="567" font-size="12.5" font-weight="bold" fill="#111">Status LED red</text><text x="840" y="579" font-size="9.5" fill="#666">strapping pin, LED output ok</text>
 <text x="716" y="644" font-size="11" fill="#888">power out</text>
-<rect x="960" y="697" width="180" height="30" rx="6" fill="#fff" stroke="#e0a100" stroke-width="2.5"/><text x="970" y="716" font-size="12.5" font-weight="bold" fill="#111">Hub 3 status LED</text>
+<rect x="830" y="697" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="840" y="711" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · CLK</text><text x="840" y="723" font-size="9.5" fill="#666">EXT1 wake pin</text>
 <text x="716" y="788" font-size="11" fill="#888">flash SD3</text>
 <text x="808" y="104" font-size="11" fill="#888">ground</text>
 <text x="808" y="176" font-size="11" fill="#888">not connected</text>
-<rect x="960" y="229" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="970" y="243" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · SW</text><text x="970" y="255" font-size="9.5" fill="#666">input-only, module pull-up</text>
-<rect x="960" y="301" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="970" y="315" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · SW</text><text x="970" y="327" font-size="9.5" fill="#666">input-only, module pull-up</text>
-<rect x="960" y="373" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="970" y="387" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · SW</text><text x="970" y="399" font-size="9.5" fill="#666">module pull-up</text>
-<rect x="960" y="445" width="180" height="30" rx="6" fill="#fff" stroke="#8e5bd9" stroke-width="2.5"/><text x="970" y="459" font-size="12.5" font-weight="bold" fill="#111">Knob 4 · SW</text><text x="970" y="471" font-size="9.5" fill="#666">input-only, module pull-up</text>
+<rect x="830" y="229" width="180" height="30" rx="6" fill="#fff" stroke="#e4572e" stroke-width="2.5"/><text x="840" y="243" font-size="12.5" font-weight="bold" fill="#111">Knob 1 · SW</text><text x="840" y="255" font-size="9.5" fill="#666">input-only · EXT1 wake pin</text>
+<rect x="830" y="301" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="840" y="315" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · CLK</text><text x="840" y="327" font-size="9.5" fill="#666">input-only · EXT1 wake pin</text>
+<rect x="830" y="373" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="840" y="387" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · DT</text><text x="840" y="399" font-size="9.5" fill="#666">EXT1 wake pin</text>
+<rect x="830" y="445" width="180" height="30" rx="6" fill="#fff" stroke="#2e86ab" stroke-width="2.5"/><text x="840" y="459" font-size="12.5" font-weight="bold" fill="#111">Knob 2 · SW</text><text x="840" y="471" font-size="9.5" fill="#666">input-only · EXT1 wake pin</text>
+<rect x="830" y="517" width="180" height="30" rx="6" fill="#fff" stroke="#3a9d5d" stroke-width="2.5"/><text x="840" y="531" font-size="12.5" font-weight="bold" fill="#111">Knob 3 · SW</text><text x="840" y="543" font-size="9.5" fill="#666">EXT1 wake pin</text>
 <text x="808" y="608" font-size="11" fill="#888">not connected</text>
 <text x="808" y="680" font-size="11" fill="#888">flash SD2</text>
 <text x="808" y="752" font-size="11" fill="#888">flash CMD</text>
 <rect x="420" y="88" width="60" height="24" rx="5" fill="#555"/><text x="450" y="104" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GND</text>
-<rect x="420" y="160" width="60" height="24" rx="5" fill="#e0a100"/><text x="450" y="176" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO27</text>
+<rect x="420" y="160" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="450" y="176" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO27</text>
 <rect x="420" y="232" width="60" height="24" rx="5" fill="#e4572e"/><text x="450" y="248" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO25</text>
 <rect x="420" y="304" width="60" height="24" rx="5" fill="#e4572e"/><text x="450" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO32</text>
 <rect x="420" y="376" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="450" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO12</text>
-<rect x="420" y="448" width="60" height="24" rx="5" fill="#e0a100"/><text x="450" y="464" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO4</text>
+<rect x="420" y="448" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="450" y="464" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO4</text>
 <rect x="420" y="520" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="450" y="536" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO0</text>
 <rect x="420" y="592" width="60" height="24" rx="5" fill="#9aa0a6"/><text x="450" y="608" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO2</text>
 <rect x="420" y="664" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="450" y="680" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO8</text>
 <rect x="420" y="736" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="450" y="752" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO6</text>
 <rect x="500" y="124" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="530" y="140" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">TXD</text>
 <rect x="500" y="196" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="530" y="212" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">RXD</text>
-<rect x="500" y="268" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="530" y="284" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO22</text>
-<rect x="500" y="340" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="530" y="356" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO21</text>
-<rect x="500" y="412" width="60" height="24" rx="5" fill="#2e86ab"/><text x="530" y="428" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO17</text>
-<rect x="500" y="484" width="60" height="24" rx="5" fill="#2e86ab"/><text x="530" y="500" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO16</text>
+<rect x="500" y="268" width="60" height="24" rx="5" fill="#e0a100"/><text x="530" y="284" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO22</text>
+<rect x="500" y="340" width="60" height="24" rx="5" fill="#e0a100"/><text x="530" y="356" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO21</text>
+<rect x="500" y="412" width="60" height="24" rx="5" fill="#e0a100"/><text x="530" y="428" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO17</text>
+<rect x="500" y="484" width="60" height="24" rx="5" fill="#e0a100"/><text x="530" y="500" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO16</text>
 <rect x="500" y="556" width="60" height="24" rx="5" fill="#555"/><text x="530" y="572" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GND</text>
 <rect x="500" y="628" width="60" height="24" rx="5" fill="#555"/><text x="530" y="644" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">5V/VIN</text>
-<rect x="500" y="700" width="60" height="24" rx="5" fill="#9aa0a6"/><text x="530" y="716" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO15</text>
+<rect x="500" y="700" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="530" y="716" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO15</text>
 <rect x="500" y="772" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="530" y="788" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO7</text>
 <rect x="650" y="124" width="60" height="24" rx="5" fill="#555"/><text x="680" y="140" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">RST</text>
 <rect x="650" y="196" width="60" height="24" rx="5" fill="#12a3a3"/><text x="680" y="212" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO36</text>
-<rect x="650" y="268" width="60" height="24" rx="5" fill="#e0a100"/><text x="680" y="284" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO26</text>
-<rect x="650" y="340" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="680" y="356" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO18</text>
-<rect x="650" y="412" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="680" y="428" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO19</text>
+<rect x="650" y="268" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="680" y="284" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO26</text>
+<rect x="650" y="340" width="60" height="24" rx="5" fill="#9aa0a6"/><text x="680" y="356" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO18</text>
+<rect x="650" y="412" width="60" height="24" rx="5" fill="#9aa0a6"/><text x="680" y="428" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO19</text>
 <rect x="650" y="484" width="60" height="24" rx="5" fill="#2fa84f"/><text x="680" y="500" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO23</text>
 <rect x="650" y="556" width="60" height="24" rx="5" fill="#d63031"/><text x="680" y="572" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO5</text>
 <rect x="650" y="628" width="60" height="24" rx="5" fill="#555"/><text x="680" y="644" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">3V3</text>
-<rect x="650" y="700" width="60" height="24" rx="5" fill="#e0a100"/><text x="680" y="716" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO13</text>
+<rect x="650" y="700" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="680" y="716" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO13</text>
 <rect x="650" y="772" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="680" y="788" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO10</text>
 <rect x="730" y="88" width="60" height="24" rx="5" fill="#555"/><text x="760" y="104" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GND</text>
 <rect x="730" y="160" width="60" height="24" rx="5" fill="#555"/><text x="760" y="176" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">NC</text>
 <rect x="730" y="232" width="60" height="24" rx="5" fill="#e4572e"/><text x="760" y="248" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO39</text>
 <rect x="730" y="304" width="60" height="24" rx="5" fill="#2e86ab"/><text x="760" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO35</text>
-<rect x="730" y="376" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="760" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO33</text>
-<rect x="730" y="448" width="60" height="24" rx="5" fill="#8e5bd9"/><text x="760" y="464" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO34</text>
-<rect x="730" y="520" width="60" height="24" rx="5" fill="#222"/><text x="760" y="536" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO14</text>
+<rect x="730" y="376" width="60" height="24" rx="5" fill="#2e86ab"/><text x="760" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO33</text>
+<rect x="730" y="448" width="60" height="24" rx="5" fill="#2e86ab"/><text x="760" y="464" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO34</text>
+<rect x="730" y="520" width="60" height="24" rx="5" fill="#3a9d5d"/><text x="760" y="536" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">GPIO14</text>
 <rect x="730" y="592" width="60" height="24" rx="5" fill="#555"/><text x="760" y="608" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">NC</text>
 <rect x="730" y="664" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="760" y="680" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO9</text>
 <rect x="730" y="736" width="60" height="24" rx="5" fill="#d9dcdf"/><text x="760" y="752" text-anchor="middle" font-size="11" font-weight="bold" fill="#777">GPIO11</text>
 <text x="20" y="844" font-size="14" font-weight="bold" fill="#111">Legend</text>
 <rect x="20" y="855" width="16" height="14" rx="3" fill="#e4572e"/><text x="44" y="866" font-size="12" fill="#222">Knob 1 (hub 1)</text>
-<rect x="205" y="855" width="16" height="14" rx="3" fill="#2e86ab"/><text x="229" y="866" font-size="12" fill="#222">Knob 2 (hub 2)</text>
-<rect x="390" y="855" width="16" height="14" rx="3" fill="#3a9d5d"/><text x="414" y="866" font-size="12" fill="#222">Knob 3 (hub 3)</text>
-<rect x="575" y="855" width="16" height="14" rx="3" fill="#8e5bd9"/><text x="599" y="866" font-size="12" fill="#222">Knob 4 (hub 4)</text>
-<rect x="760" y="855" width="16" height="14" rx="3" fill="#e0a100"/><text x="784" y="866" font-size="12" fill="#222">hub status LED</text>
-<rect x="945" y="855" width="16" height="14" rx="3" fill="#2fa84f"/><text x="969" y="866" font-size="12" fill="#222">status green</text>
+<rect x="185" y="855" width="16" height="14" rx="3" fill="#2e86ab"/><text x="209" y="866" font-size="12" fill="#222">Knob 2 (hub 2)</text>
+<rect x="350" y="855" width="16" height="14" rx="3" fill="#3a9d5d"/><text x="374" y="866" font-size="12" fill="#222">Knob 3 (hub 3)</text>
+<rect x="515" y="855" width="16" height="14" rx="3" fill="#8e5bd9"/><text x="539" y="866" font-size="12" fill="#222">Knob 4 (hub 4)</text>
+<rect x="680" y="855" width="16" height="14" rx="3" fill="#e0a100"/><text x="704" y="866" font-size="12" fill="#222">hub status LED</text>
+<rect x="845" y="855" width="16" height="14" rx="3" fill="#2fa84f"/><text x="869" y="866" font-size="12" fill="#222">status green</text>
 <rect x="20" y="877" width="16" height="14" rx="3" fill="#d63031"/><text x="44" y="888" font-size="12" fill="#222">status red</text>
-<rect x="205" y="877" width="16" height="14" rx="3" fill="#12a3a3"/><text x="229" y="888" font-size="12" fill="#222">battery ADC</text>
-<rect x="390" y="877" width="16" height="14" rx="3" fill="#222"/><text x="414" y="888" font-size="12" fill="#222">wake line</text>
-<rect x="575" y="877" width="16" height="14" rx="3" fill="#9aa0a6"/><text x="599" y="888" font-size="12" fill="#222">free</text>
-<rect x="760" y="877" width="16" height="14" rx="3" fill="#d9dcdf"/><text x="784" y="888" font-size="12" fill="#222">unusable / avoid</text>
-<rect x="945" y="877" width="16" height="14" rx="3" fill="#555"/><text x="969" y="888" font-size="12" fill="#222">power / reset / NC</text>
-<text x="20" y="930" font-size="12" fill="#333">Diodes: 1N4148, anode (plain side) on W/GPIO14, cathode (bar) on each knob's SW pad. Pressing any knob button pulls W low through its diode, EXT0 wakes the board.</text>
-<text x="20" y="948" font-size="12" fill="#333">Each KY-040: + to 3.3V, GND to GND. Knobs are active-low: module pull-ups hold CLK/DT/SW high; no external resistors anywhere. Rotation does not wake the board, button presses do.</text>
-<text x="20" y="966" font-size="12" fill="#333">Free for later: GPIO2, GPIO15 (strapping pins). Flash pins (GPIO6-11) and GPIO0/12 and UART0 must not be used.</text>
+<rect x="185" y="877" width="16" height="14" rx="3" fill="#12a3a3"/><text x="209" y="888" font-size="12" fill="#222">battery ADC</text>
+<rect x="350" y="877" width="16" height="14" rx="3" fill="#9aa0a6"/><text x="374" y="888" font-size="12" fill="#222">free</text>
+<rect x="515" y="877" width="16" height="14" rx="3" fill="#d9dcdf"/><text x="539" y="888" font-size="12" fill="#222">unusable / avoid</text>
+<rect x="680" y="877" width="16" height="14" rx="3" fill="#555"/><text x="704" y="888" font-size="12" fill="#222">power / reset / NC</text>
+<text x="20" y="930" font-size="12" fill="#333">Knobs are wired active-high: KY-040 + to GND and KY-040 GND to 3.3V. The module's resistors act as pull-downs; no external parts, no diodes.</text>
+<text x="20" y="948" font-size="12" fill="#333">Wake: all 12 knob lines (CLK, DT and SW of every knob) are RTC pins in the EXT1 ANY_HIGH wake set, so turning or pressing any knob wakes the board.</text>
+<text x="20" y="966" font-size="12" fill="#333">Free for later: GPIO18, GPIO19 (outputs ok) and GPIO2 (strapping, RTC). Flash pins (GPIO6-11), GPIO0/12 and UART0 must not be used.</text>
 </svg>

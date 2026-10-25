@@ -17,7 +17,7 @@ discovery flow, so each hub's MAC must be known ahead of time.
 4. Power off that hub, wait a few seconds for the log to settle, then power on
    the next hub and repeat.
 5. Record all 4 MACs into `secrets.yaml` as `hub1_mac`, `hub2_mac`, `hub3_mac`,
-   `hub4_mac`.
+   `hub4_mac` (and `hub5_mac` for the alternative to hub 1).
 
 If you have LightBlue, nRF Connect, or a similar BLE scanner app, you can
 cross-check by looking for devices advertising service UUID
