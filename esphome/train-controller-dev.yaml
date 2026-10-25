@@ -128,6 +128,13 @@ interval:
                      id(hub5_ble)->connected();
           float volts = id(battery_v).state;  // NaN until the first reading
           bool low = !std::isnan(volts) && volts < ${battery_low_v};
+          // Hub LEDs: solid while connected, blinking in unison (1 Hz) while coupled.
+          // Hub 5 shares Hub 1's LED (they are mutually exclusive alternatives).
+          const bool lit = !id(coupled) || (tick % 2) == 0;
+          id(hub1_status_led).set_state((id(hub1_ble)->connected() || id(hub5_ble)->connected()) && lit);
+          id(hub2_status_led).set_state(id(hub2_ble)->connected() && lit);
+          id(hub3_status_led).set_state(id(hub3_ble)->connected() && lit);
+          id(hub4_status_led).set_state(id(hub4_ble)->connected() && lit);
           bool green = true;
           bool red = !hub;  // amber when no hub
           if (low && (tick % 2) == 1) {  // alternate with red
@@ -152,39 +159,24 @@ ble_client:
     id: hub1_ble
     # Hub 1 and Hub 5 are alternatives: whichever connects first parks the other.
     on_connect:
-      - output.turn_on: hub1_status_led
       - switch.turn_off: hub5_ble_enabled
     on_disconnect:
-      - output.turn_off: hub1_status_led
       - switch.turn_on: hub5_ble_enabled
   # Hub 5 is an alternative to Hub 1 (normally only one of the two is on):
-  # it shares Hub 1's status LED and Knob 1.
+  # it shares Hub 1's status LED and Knob 1 (LEDs are driven by the 500 ms
+  # interval below).
   - mac_address: !secret hub5_mac
     id: hub5_ble
     on_connect:
-      - output.turn_on: hub1_status_led
       - switch.turn_off: hub1_ble_enabled
     on_disconnect:
-      - output.turn_off: hub1_status_led
       - switch.turn_on: hub1_ble_enabled
   - mac_address: !secret hub2_mac
     id: hub2_ble
-    on_connect:
-      - output.turn_on: hub2_status_led
-    on_disconnect:
-      - output.turn_off: hub2_status_led
   - mac_address: !secret hub3_mac
     id: hub3_ble
-    on_connect:
-      - output.turn_on: hub3_status_led
-    on_disconnect:
-      - output.turn_off: hub3_status_led
   - mac_address: !secret hub4_mac
     id: hub4_ble
-    on_connect:
-      - output.turn_on: hub4_status_led
-    on_disconnect:
-      - output.turn_off: hub4_status_led
 
 # Stock ESPHome switch: off disconnects this hub and stops auto-reconnecting,
 # on reconnects. Handy to "park" a hub without powering it off, or to free

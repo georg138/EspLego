@@ -91,7 +91,8 @@ non-RTC pins (22, 21, 17, 16) to leave the RTC pins to the knobs.
 
 ## Extra buttons
 
-- **Couple Hubs (GPIO18):** toggles coupled mode. Turning it on syncs every
+- **Couple Hubs (GPIO18):** toggles coupled mode; while coupled the connected hubs'
+  status LEDs (GPIO22/21/17/16) blink together at 1 Hz instead of staying solid. Turning it on syncs every
   connected hub to the last knob speed; while coupled, any knob steps all hubs
   together and a knob click stops all. Turning it off leaves speeds as they are.
 - **Stop All (GPIO19):** zeroes every hub and clears manual headlight overrides.

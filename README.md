@@ -85,7 +85,7 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   hand (a plain click returns it to automatic). No hub enables it yet.
 - Two extra buttons (GPIO18/19, see `docs/gpio_pinout.md`): **Couple** toggles
   coupled mode (syncs all connected hubs to the last knob speed, then any knob
-  drives all of them) and **Stop All** zeroes every hub. They do not wake the
+  drives all of them; the connected hubs' LEDs blink in unison while coupled) and **Stop All** zeroes every hub. They do not wake the
   board from deep sleep.
 
 ## Hardware
