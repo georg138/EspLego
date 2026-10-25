@@ -42,7 +42,8 @@ Two top-level configs:
 - `esphome/train-controller-dev.yaml` — the active single-board dev/bring-up
   config (currently 5 hubs (hub1/hub5 are mutually exclusive alternatives sharing knob 1 and its status LED; remotes disabled) + 4 rotary encoder knobs + status LEDs + deep sleep).
   This is the one that gets changed and tested first.
-- `esphome/train-controller.yaml` — the full 4-hub build, using
+- `esphome/train-controller.yaml` — the full 5-hub build (same controls via
+  `esphome/controls.yaml`), using
   `esphome/hub-package.yaml` as a reusable per-hub template via
   `packages:`/`vars:`. Features get backported here once confirmed in the
   dev config (see "Dev config vs full config" below).
@@ -99,7 +100,9 @@ root.
   `ota:`/`web_server:` — included by every top-level config via `packages:`.
 - `esphome/common/ble_base.yaml`: `esp32_ble_tracker:`/`esp32_ble:`. Scan
   parameters are deliberately low-duty-cycle passive scanning
-  (`active: false`, `window: 30ms` of a `320ms` interval) — a defaulted
+  (`active: false`; currently `window: 100ms` of a `160ms` interval, temporarily
+  raised from `30ms`/`320ms` while debugging hubs that were never discovered —
+  lower it again if connections drop) — a defaulted
   window auto-raises to match the interval (100% duty continuous active
   scanning) once Wi-Fi is configured, which competes for radio time with
   maintaining multiple live `ble_client` connections and was an observed

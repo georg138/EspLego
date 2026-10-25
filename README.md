@@ -40,7 +40,7 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   wiring (module `+` to GND, GND to 3.3V) are in [`docs/gpio_pinout.md`](docs/gpio_pinout.md); Knob 1's pins
   moved (DT 33 -> 25, SW 25 -> 39, green LED 14 -> 23); knobs 2-4 and the hub LEDs were re-pinned so every knob line is an RTC wake pin, so rewire before
   flashing.
-- The full 4-hub build (`train-controller.yaml`) hasn't been run on real
+- The full 5-hub build (`train-controller.yaml`) hasn't been run on real
   hardware with all hubs present. It now has the same controls as the dev
   config (knobs, buttons, LEDs, sleep) via `controls.yaml`.
 - **LEGO Remote support is compile-tested only.** The remote button byte
@@ -126,7 +126,7 @@ PLAN.md                full build history and architecture rationale
    logs (see [`docs/ble_mac_scan.md`](docs/ble_mac_scan.md)). Add them to
    `secrets.yaml`.
 3. `esphome run train-controller-dev.yaml` to bring up the dev board, or
-   `train-controller.yaml` for the full 4-hub build.
+   `train-controller.yaml` for the full 5-hub build.
 
 Requires Python 3 + `pip install esphome`. If you hit `CERTIFICATE_VERIFY_FAILED`
 during compile, set `SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE` to your certifi bundle
