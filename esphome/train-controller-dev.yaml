@@ -11,6 +11,9 @@ substitutions:
   # with red. Tune to the cells used (4xAA alkaline ~6 V fresh, ~4.4 V is low;
   # NiMH ~4.8 V nominal, use a lower value like 4.2).
   battery_low_v: "4.4"
+  # Speed change per knob detent (%). 5 = a full turn of a 20-detent KY-040
+  # goes 0 -> 100; use "1" for fine control.
+  knob_step: "5"
 
 packages:
   base: !include common/base.yaml
@@ -134,8 +137,9 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: hub1
     port: B
-    name: "Hub 1 Port B Power"
+    name: "Hub 1 Headlight"
     id: hub1_port_b
+    light: true  # port B is always a Powered Up light
   - platform: lwp3_hub
     lwp3_hub_id: hub2
     port: A
@@ -149,8 +153,9 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: hub2
     port: B
-    name: "Hub 2 Port B Power"
+    name: "Hub 2 Headlight"
     id: hub2_port_b
+    light: true  # port B is always a Powered Up light
     min_power: 10
   - platform: lwp3_hub
     lwp3_hub_id: hub3
@@ -162,8 +167,9 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: hub3
     port: B
-    name: "Hub 3 Port B Power"
+    name: "Hub 3 Headlight"
     id: hub3_port_b
+    light: true  # port B is always a Powered Up light
     min_power: 10
   - platform: lwp3_hub
     lwp3_hub_id: hub4
@@ -175,8 +181,9 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: hub4
     port: B
-    name: "Hub 4 Port B Power"
+    name: "Hub 4 Headlight"
     id: hub4_port_b
+    light: true  # port B is always a Powered Up light
     min_power: 10
   # Hub 5: alternative to Hub 1 on Knob 1. Assumed to be a plain Powered Up
   # Train Hub like Hubs 2-4 (min_power 10) - adjust if it is a Duplo base.
@@ -189,8 +196,9 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: hub5
     port: B
-    name: "Hub 5 Port B Power"
+    name: "Hub 5 Headlight"
     id: hub5_port_b
+    light: true  # port B is always a Powered Up light
     min_power: 10
 
 # Duplo Train Base speaker (built-in, fixed device). Best guess is Port B

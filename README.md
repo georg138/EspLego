@@ -81,9 +81,10 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 - Hub 5 is an alternative to Hub 1 (only one of the two connects; they share
   Knob 1 and its status LED). Remotes are disabled in the dev config for now.
 - Zero detent: each knob has a +-2 tick dead zone around speed 0.
-- Port-B headlight: a port B number with `light: true` drives a Powered Up
-  light, on while the hub moves; hold the knob button and turn to dim it by
-  hand (a plain click returns it to automatic). No hub enables it yet.
+- Port-B headlight: port B is assumed to always be a Powered Up light on every
+  hub (`light: true` on each "Hub N Headlight" number, `light_b` in the full
+  config). It is on while the hub moves; hold the knob button and turn to dim it
+  by hand (a plain click returns it to automatic).
 - Two extra buttons (GPIO18/19, see `docs/gpio_pinout.md`): **Couple** toggles
   coupled mode (syncs all connected hubs to the last knob speed, then any knob
   drives all of them; the connected hubs' LEDs blink in unison while coupled) and **Stop All** zeroes every hub. They do not wake the

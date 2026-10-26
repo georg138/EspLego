@@ -47,7 +47,7 @@ number:
   - platform: lwp3_hub
     lwp3_hub_id: ${hub_id}
     port: B
-    name: "${hub_name} Port B Power"
+    name: "${hub_name} Headlight"
     id: ${hub_id}_port_b
     min_power: ${min_power_b}
     light: ${light_b}  # "true" = a Powered Up light on port B (see lwp3_motor_number)

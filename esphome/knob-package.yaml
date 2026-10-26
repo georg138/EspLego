@@ -17,7 +17,7 @@
 # `hub_id` is not; otherwise it drives `hub_id`.
 #
 # Turning steps the hub's CURRENT speed (read back from its number entities)
-# by 1 per detent, so the knob stays in sync when the same hub is also moved by
+# by ${knob_step} per detent (one full turn of a 20-detent KY-040 = 0..100), so the knob stays in sync when the same hub is also moved by
 # a remote or Home Assistant. Pressing the button stops the hub (and puts a
 # port-B headlight back to automatic); turning while pushed dims that light. Every action
 # restarts the inactivity timer. Waking from deep sleep is NOT done here: the SW
@@ -68,7 +68,10 @@ script:
             z += dir;
             return;
           }
-          int v = std::max(-100, std::min(100, s + dir));
+          // ${knob_step} % per detent (a KY-040 has 20 detents, so one full turn
+          // spans 0..100). Never step across 0 in one go: stop there first.
+          int v = std::max(-100, std::min(100, s + dir * ${knob_step}));
+          if ((s > 0 && v < 0) || (s < 0 && v > 0)) v = 0;
           id(ref_speed) = v;
           if (id(coupled)) {
             id(apply_all)->execute(v);

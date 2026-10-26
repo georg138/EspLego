@@ -7,10 +7,13 @@ substitutions:
   # this below.
   min_power_a: "10"
   min_power_b: "10"
-  # Set to "true" per hub (below) when a Powered Up light sits on port B.
-  light_b: "false"
+  # Port B is always a Powered Up light (headlight follows the hub's motion).
+  light_b: "true"
   # Battery pack voltage (V) below which the status LED alternates with red.
   battery_low_v: "4.4"
+  # Speed change per knob detent (%). 5 = a full turn of a 20-detent KY-040
+  # goes 0 -> 100; use "1" for fine control.
+  knob_step: "5"
 
 packages:
   base: !include common/base.yaml
