@@ -125,6 +125,74 @@ lwp3_hub:
       - A
       - B
 
+# Duplo Train Base wheel speed (internal speedometer, port 0x13, raw units; 0 =
+# wheels still) and stall protection for Hub 1: when the measured speed drops to 0
+# from a nonzero value and stays 0 for 1 s while Hub 1 is still commanded to move
+# (its min_power is 50, so any nonzero request is >= 50 % motor power), the train
+# has hit something. Reset: stop Hub 1 like a knob click (or stop everything when
+# coupled), re-zero Knob 1 and raise "Hub 1 Stalled".
+sensor:
+  - platform: lwp3_hub
+    type: speedometer
+    lwp3_hub_id: hub1
+    name: "Hub 1 Measured Speed"
+    id: hub1_measured_speed
+    on_value:
+      then:
+        - lambda: |-
+            if (!std::isnan(x) && x != 0) {
+              id(hub1_was_moving) = true;
+              id(hub1_stalled) = false;
+            }
+        - if:
+            condition:
+              lambda: 'return !std::isnan(x) && x == 0 && id(hub1_was_moving);'
+            then:
+              - lambda: id(hub1_was_moving) = false;
+              - script.execute: hub1_stall_check
+            else:
+              - if:
+                  condition:
+                    lambda: 'return !std::isnan(x) && x != 0;'
+                  then:
+                    - script.stop: hub1_stall_check
+
+globals:
+  - id: hub1_was_moving  # measured speed was nonzero before the latest drop to 0
+    type: bool
+    initial_value: "false"
+  - id: hub1_stalled
+    type: bool
+    initial_value: "false"
+
+script:
+  - id: hub1_stall_check
+    mode: restart
+    then:
+      - delay: 1s
+      - if:
+          condition:
+            lambda: 'return id(hub1_measured_speed).state == 0 && (int) id(hub1_port_a).state != 0;'
+          then:
+            - lambda: id(hub1_stalled) = true;
+            - if:
+                condition:
+                  lambda: 'return id(coupled);'
+                then:
+                  - script.execute: stop_all
+                else:
+                  - lambda: |-
+                      id(hub1_port_a)->make_call().set_value(0).perform();
+                      id(hub1_port_b)->make_call().set_value(0).perform();
+                      id(hub1_port_b)->set_light_override(-1);
+                      id(ref_speed) = 0;
+                      id(knob1_sync)->execute(0);
+
+binary_sensor:
+  - platform: template
+    name: "Hub 1 Stalled"
+    lambda: 'return id(hub1_stalled);'
+
 number:
   - platform: lwp3_hub
     lwp3_hub_id: hub1

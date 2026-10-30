@@ -64,6 +64,10 @@ constexpr uint8_t MODE_POWER = 0x00;
 constexpr uint8_t MODE_SOUND = 0x01;
 // Remote button groups: mode 0 reports the pressed button as a single byte.
 constexpr uint8_t MODE_REMOTE_BUTTONS = 0x00;
+// Duplo Train Base internal speedometer (wheel speed sensor): fixed port ID 0x13
+// (19), mode 0 = speed. UNVERIFIED against hardware - see lwp3_speedometer_sensor.
+constexpr uint8_t DUPLO_PORT_SPEEDOMETER = 0x13;
+constexpr uint8_t MODE_SPEEDOMETER_SPEED = 0x00;
 // Remote RGB LED: mode 1 takes three payload bytes, R/G/B 0-255.
 constexpr uint8_t MODE_LED_RGB = 0x01;
 

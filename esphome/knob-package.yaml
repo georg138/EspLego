@@ -16,22 +16,29 @@
 # no alternative. The knob drives `alt_hub_id` only while it is connected and
 # `hub_id` is not; otherwise it drives `hub_id`.
 #
-# Turning steps the hub's CURRENT speed (read back from its number entities)
-# by ${knob_step} per detent (one full turn of a 20-detent KY-040 = 0..100), so the knob stays in sync when the same hub is also moved by
-# a remote or Home Assistant. Pressing the button stops the hub (and puts a
-# port-B headlight back to automatic); turning while pushed dims that light. Every action
-# restarts the inactivity timer. Waking from deep sleep is NOT done here: the SW
-# pins are the EXT1 wake set (see deep_sleep in the top-level config and
-# docs/gpio_pinout.md).
+# The knob is ABSOLUTE: speed 0 is always the same physical knob position. Turning
+# `${knob_id}_pos` (detent count) away from `${knob_id}_zero` sets the speed
+# directly: a +-2 detent dead zone around the zero position is speed 0, beyond it
+# ${knob_step} % per detent (a 20-detent KY-040: one full turn = 0..100), clamped at
+# +-100 so winding further does not move the zero. The zero position is only
+# re-set (`${knob_id}_sync`) when a hub of this knob connects (and at boot), when
+# the knob button stops the hub, on Stop All, and when coupling is toggled; each
+# re-sets it so the knob's CURRENT position maps to the hub's current speed. A
+# hub moved from a remote or Home Assistant is therefore not followed: the next
+# turn jumps to the knob's own position. Pressing the button stops the hub (and
+# puts a port-B headlight back to automatic); turning while pushed dims that
+# light. Every action restarts the inactivity timer. Waking from deep sleep is NOT
+# done here: the SW pins are the EXT1 wake set (see deep_sleep in controls.yaml
+# and docs/gpio_pinout.md).
 
-# Zero detent: the knob has a +-2 tick dead zone around 0 so stopping is easy to
-# hit without overshooting into reverse. While the hub is at 0, turns just walk
-# `${knob_id}_zero_pos` within -2..2; only a turn past either end starts the
-# motor. Coming back to 0 from one side lands on that side's edge (-2 from
-# below, +2 from above), so you still pass through the full zero band. The
-# button resets it to the centre.
 globals:
-  - id: ${knob_id}_zero_pos
+  - id: ${knob_id}_pos  # detent counter (turns since boot, clamped around zero)
+    type: int
+    initial_value: "0"
+  - id: ${knob_id}_zero  # detent counter value that means speed 0
+    type: int
+    initial_value: "0"
+  - id: ${knob_id}_last  # last speed this knob applied (skip duplicate writes)
     type: int
     initial_value: "0"
   - id: ${knob_id}_rotated_held  # knob was turned while pushed -> that press is not a click
@@ -39,7 +46,18 @@ globals:
     initial_value: "false"
 
 script:
-  # dir: +1 clockwise, -1 anticlockwise. Steps whichever of hub_id/alt_hub_id
+  # Re-sets the zero position so the knob's current position means `speed`
+  # (0 after a connect/stop). See header.
+  - id: ${knob_id}_sync
+    parameters:
+      speed: int
+    then:
+      - lambda: |-
+          const int zero_band = 2;
+          const int off = speed == 0 ? 0 : (speed > 0 ? 1 : -1) * (zero_band + (std::abs(speed) + ${knob_step} / 2) / ${knob_step});
+          id(${knob_id}_zero) = id(${knob_id}_pos) - off;
+          id(${knob_id}_last) = speed;
+  # dir: +1 clockwise, -1 anticlockwise. Drives whichever of hub_id/alt_hub_id
   # is currently active (see header).
   - id: ${knob_id}_step
     mode: queued
@@ -60,18 +78,18 @@ script:
             }
             return;
           }
-          // Coupled: the shared reference speed is the master (this knob's own hub
-          // may be disconnected); otherwise step this hub's current speed.
-          int s = id(coupled) ? id(ref_speed) : (int) pa->state;
-          int &z = id(${knob_id}_zero_pos);
-          if (s == 0 && dir * z < zero_band) {
-            z += dir;
+          // Position relative to the zero position, clamped so winding past
+          // +-100 % does not move the zero.
+          const int max_off = zero_band + (100 + ${knob_step} - 1) / ${knob_step};
+          int &pos = id(${knob_id}_pos);
+          const int zero = id(${knob_id}_zero);
+          pos = std::max(zero - max_off, std::min(zero + max_off, pos + dir));
+          const int off = pos - zero;
+          const int mag = std::abs(off) <= zero_band ? 0 : std::min(100, (std::abs(off) - zero_band) * ${knob_step});
+          const int v = off < 0 ? -mag : mag;
+          if (v == id(${knob_id}_last))
             return;
-          }
-          // ${knob_step} % per detent (a KY-040 has 20 detents, so one full turn
-          // spans 0..100). Never step across 0 in one go: stop there first.
-          int v = std::max(-100, std::min(100, s + dir * ${knob_step}));
-          if ((s > 0 && v < 0) || (s < 0 && v > 0)) v = 0;
+          id(${knob_id}_last) = v;
           id(ref_speed) = v;
           if (id(coupled)) {
             id(apply_all)->execute(v);
@@ -79,8 +97,6 @@ script:
             pa->make_call().set_value(v).perform();
             pb->make_call().set_value(v).perform();
           }
-          // Landed on 0: enter the zero band at the edge facing the side we came from.
-          if ((id(coupled) ? v : (int) pa->state) == 0) z = -dir * zero_band;
 
 sensor:
   - platform: rotary_encoder
@@ -129,7 +145,6 @@ binary_sensor:
                 then:
                   - script.execute: stop_all  # coupled: a click stops every hub
                 else:
-                  - lambda: id(${knob_id}_zero_pos) = 0;
                   - number.set: { id: "${hub_id}_port_a", value: 0 }
                   - number.set: { id: "${hub_id}_port_b", value: 0 }
                   - number.set: { id: "${alt_hub_id}_port_a", value: 0 }
@@ -138,4 +153,9 @@ binary_sensor:
                   - lambda: |-
                       id(${hub_id}_port_b)->set_light_override(-1);
                       id(${alt_hub_id}_port_b)->set_light_override(-1);
+                      id(ref_speed) = 0;
+                  # The knob's current position becomes the new zero.
+                  - script.execute:
+                      id: ${knob_id}_sync
+                      speed: 0
       - script.execute: inactivity_timer

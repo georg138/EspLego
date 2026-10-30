@@ -13,21 +13,48 @@ from .. import LWP3Hub, lwp3_hub_ns
 
 CONF_LWP3_HUB_ID = "lwp3_hub_id"
 
+CONF_TYPE = "type"
+TYPE_BATTERY = "battery"
+TYPE_SPEEDOMETER = "speedometer"
+
 LWP3BatterySensor = lwp3_hub_ns.class_(
     "LWP3BatterySensor", sensor.Sensor, cg.Component, cg.Parented.template(LWP3Hub)
 )
+LWP3SpeedometerSensor = lwp3_hub_ns.class_(
+    "LWP3SpeedometerSensor", sensor.Sensor, cg.Component, cg.Parented.template(LWP3Hub)
+)
 
-CONFIG_SCHEMA = (
-    sensor.sensor_schema(
-        LWP3BatterySensor,
-        unit_of_measurement=UNIT_PERCENT,
-        accuracy_decimals=0,
-        device_class=DEVICE_CLASS_BATTERY,
-        state_class=STATE_CLASS_MEASUREMENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+
+def _schema(sensor_schema):
+    return (
+        sensor_schema.extend({cv.GenerateID(CONF_LWP3_HUB_ID): cv.use_id(LWP3Hub)})
+        .extend(cv.COMPONENT_SCHEMA)
     )
-    .extend({cv.GenerateID(CONF_LWP3_HUB_ID): cv.use_id(LWP3Hub)})
-    .extend(cv.COMPONENT_SCHEMA)
+
+
+# `type:` defaults to battery so existing configs keep working.
+CONFIG_SCHEMA = cv.typed_schema(
+    {
+        TYPE_BATTERY: _schema(
+            sensor.sensor_schema(
+                LWP3BatterySensor,
+                unit_of_measurement=UNIT_PERCENT,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_BATTERY,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            )
+        ),
+        # Duplo Train Base wheel speed (raw units until verified on hardware).
+        TYPE_SPEEDOMETER: _schema(
+            sensor.sensor_schema(
+                LWP3SpeedometerSensor,
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            )
+        ),
+    },
+    default_type=TYPE_BATTERY,
 )
 
 

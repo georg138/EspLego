@@ -87,12 +87,14 @@ root.
 - `number/` and `button/` subdirectories: ESPHome platform implementations
   (`LWP3MotorNumber`, `LWP3SoundButton`), each `Parented<LWP3Hub>`, calling
   back into the hub instance rather than touching BLE directly.
-- `LWP3MotorNumber::control()` applies a direction-aware `min_power`
-  deadband: increasing from 0 into the dead zone lifts to `min_power`
-  (so the motor actually engages instead of humming), decreasing into it
-  snaps to 0 (so you can actually stop/slow down, rather than getting stuck
-  at `min_power`). This needs the previous raw value to detect direction —
-  see `last_raw_value_` in `lwp3_motor_number.cpp`.
+- `LWP3MotorNumber::control()` maps requests statelessly onto the motor's
+  `min_power`: 0 stays 0 and any nonzero request 1..100 maps linearly onto
+  `min_power`..100 (sign kept), so a motor that needs a minimum power to move
+  (Duplo: 50) never sits in a dead zone and no direction tracking is needed.
+  The number publishes the REQUESTED speed, not the mapped power. (An older
+  direction-aware lift/snap deadband was replaced because it made the absolute
+  knob stutter.) With `light: true` the port is a headlight instead (on/off
+  from "was a nonzero speed requested", plus a manual brightness override).
 
 ### YAML structure
 

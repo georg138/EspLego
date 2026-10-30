@@ -59,8 +59,9 @@ GND to **3.3V** (the two power pins swapped), CLK/DT/SW to the pins. The module'
 own resistors then act as pull-downs (lines idle low, go high on contact) and its
 onboard debounce stays in place, so no internal or external resistor is needed
 (and the input-only pins are fine). Bench-tested clean with
-`esphome/knob-test.yaml`. Turning a knob steps its hub's current speed by `knob_step` (5 %) per
-detent, so one full turn of a 20-detent KY-040 goes 0 to 100; pressing it stops that hub.
+`esphome/knob-test.yaml`. Turning a knob sets its hub's speed from the knob's position relative to a fixed
+zero position (`knob_step` = 5 % per detent beyond a +-2 detent dead zone, so one
+full turn of a 20-detent KY-040 goes 0 to 100); pressing it stops that hub.
 
 ## Wake from deep sleep: turning or pressing any knob (EXT1 ANY_HIGH)
 

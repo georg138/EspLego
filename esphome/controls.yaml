@@ -96,6 +96,16 @@ interval:
           }
           static uint32_t tick = 0;
           tick++;
+          // A hub (re)connecting re-zeroes its knob at the knob's current position.
+          static bool c1 = false, c2 = false, c3 = false, c4 = false, c5 = false;
+          const bool n1 = id(hub1_ble)->connected(), n2 = id(hub2_ble)->connected(),
+                     n3 = id(hub3_ble)->connected(), n4 = id(hub4_ble)->connected(),
+                     n5 = id(hub5_ble)->connected();
+          if ((n1 && !c1) || (n5 && !c5)) id(knob1_sync)->execute(0);
+          if (n2 && !c2) id(knob2_sync)->execute(0);
+          if (n3 && !c3) id(knob3_sync)->execute(0);
+          if (n4 && !c4) id(knob4_sync)->execute(0);
+          c1 = n1; c2 = n2; c3 = n3; c4 = n4; c5 = n5;
           bool hub = id(hub1_ble)->connected() || id(hub2_ble)->connected() ||
                      id(hub3_ble)->connected() || id(hub4_ble)->connected() ||
                      id(hub5_ble)->connected();
@@ -187,10 +197,12 @@ binary_sensor:
     on_click:
       - lambda: |-
           id(coupled) = !id(coupled);
-          id(knob1_zero_pos) = 0;
-          id(knob2_zero_pos) = 0;
-          id(knob3_zero_pos) = 0;
-          id(knob4_zero_pos) = 0;
+          // Each knob's current position now means the shared speed, so every
+          // knob continues from where the hubs actually are.
+          id(knob1_sync)->execute(id(ref_speed));
+          id(knob2_sync)->execute(id(ref_speed));
+          id(knob3_sync)->execute(id(ref_speed));
+          id(knob4_sync)->execute(id(ref_speed));
       # Sync: coupling sets every connected hub to the last knob speed.
       - if:
           condition:
@@ -294,10 +306,11 @@ script:
           id(hub4_port_b)->set_light_override(-1);
           id(hub5_port_b)->set_light_override(-1);
           id(ref_speed) = 0;
-          id(knob1_zero_pos) = 0;
-          id(knob2_zero_pos) = 0;
-          id(knob3_zero_pos) = 0;
-          id(knob4_zero_pos) = 0;
+          // Every knob's current position now means speed 0.
+          id(knob1_sync)->execute(0);
+          id(knob2_sync)->execute(0);
+          id(knob3_sync)->execute(0);
+          id(knob4_sync)->execute(0);
   # Called by remote-package.yaml on every remote button press - keeps the
   # board awake while someone is using a remote.
   - id: remote_activity

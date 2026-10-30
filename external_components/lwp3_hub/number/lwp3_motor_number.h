@@ -17,8 +17,8 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
 
   void set_port(uint8_t port) { this->port_ = port; }
   /// Some motors (e.g. the Duplo Train Base's) need a minimum power before
-  /// they overcome static friction and actually move - a nonzero value below
-  /// this threshold would just hum in place. 0 (default) disables remapping.
+  /// they overcome static friction and actually move. Requests 1..100 are
+  /// mapped linearly onto min_power..100 (0 stays 0). 0 (default) = no remap.
   void set_min_power(uint8_t min_power) { this->min_power_ = min_power; }
   /// This port drives a Powered Up light, not a motor (see control()).
   void set_light(bool light) { this->light_ = light; }
@@ -39,10 +39,8 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
   uint8_t min_power_{0};
   bool light_{false};
   int light_override_{-1};
-  // Last raw (pre-remap) requested value, used to tell whether a new request
-  // below min_power_ is heading up from 0 (lift to min_power_, so the motor
-  // still engages) or down from above (snap to 0, so it can actually stop/
-  // slow down instead of getting stuck at min_power_).
+  // Last requested value; light ports only use it to know whether the hub was
+  // asked to move (automatic headlight).
   int32_t last_raw_value_{0};
 };
 

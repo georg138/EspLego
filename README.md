@@ -54,8 +54,9 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 
 - Drives each hub's motor port(s) as an ESPHome `number` entity (−100..100),
   auto-discovered via the hub's own Hub Attached I/O announcement.
-- Per-hub minimum-power deadband (`min_power:`) so a motor that needs a
-  boost to overcome static friction doesn't just hum in place at low power.
+- Per-hub `min_power:` mapping: requests 1..100 map linearly onto
+  `min_power`..100, so a motor that needs a boost to overcome static friction
+  never hums in place at low power and the speed range stays smooth.
 - Duplo Train Base built-in speaker support (5 predefined sounds as
   `button` entities).
 - A physical KY-040 rotary encoder + button: turn to set speed, press to
@@ -80,11 +81,19 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   GPIO36).
 - Hub 5 is an alternative to Hub 1 (only one of the two connects; they share
   Knob 1 and its status LED). Remotes are disabled in the dev config for now.
-- Zero detent: each knob has a +-2 tick dead zone around speed 0.
+- Absolute knobs: speed 0 is always the same physical knob position (a +-2
+  detent dead zone, then 5 % per detent, so one full turn = 0..100). The zero
+  position is only re-set when a hub connects (and at boot), on a knob click
+  (stop), on Stop All, and when coupling is toggled.
 - Port-B headlight: port B is assumed to always be a Powered Up light on every
   hub (`light: true` on each "Hub N Headlight" number, `light_b` in the full
   config). It is on while the hub moves; hold the knob button and turn to dim it
   by hand (a plain click returns it to automatic).
+- Duplo stall reset (dev config, Hub 1): the base's internal speedometer is
+  exposed as "Hub 1 Measured Speed" (`sensor` with `type: speedometer`, raw
+  units). If it drops to 0 and stays 0 for 1 s while Hub 1 is still commanded to
+  move, Hub 1 is stopped (everything when coupled), Knob 1 is re-zeroed and
+  "Hub 1 Stalled" turns on. Not yet verified against a real wall hit.
 - Two extra buttons (GPIO18/19, see `docs/gpio_pinout.md`): **Couple** toggles
   coupled mode (syncs all connected hubs to the last knob speed, then any knob
   drives all of them; the connected hubs' LEDs blink in unison while coupled) and **Stop All** zeroes every hub. They do not wake the

@@ -20,8 +20,8 @@ CONFIG_SCHEMA = (
             cv.GenerateID(CONF_LWP3_HUB_ID): cv.use_id(LWP3Hub),
             cv.Required(CONF_PORT): validate_port_letter,
             # Some motors (e.g. Duplo Train Base) need a minimum power before
-            # they overcome static friction and actually move. 0 (default)
-            # means no remapping - set this per-entity for motors that need it.
+            # they overcome static friction and actually move. Requests 1..100
+            # are mapped linearly onto min_power..100. 0 (default) = no remap.
             cv.Optional(CONF_MIN_POWER, default=0): cv.int_range(min=0, max=100),
             # Port drives a Powered Up light instead of a motor: any nonzero
             # request means "on" (full brightness), direction is ignored, and

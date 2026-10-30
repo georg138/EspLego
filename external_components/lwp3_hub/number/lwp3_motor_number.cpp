@@ -45,30 +45,21 @@ void LWP3MotorNumber::control(float value) {
     this->apply_light_();
     return;
   }
-  int32_t power = raw;
+  // Stateless mapping: 0 stays 0, any nonzero request 1..100 maps linearly onto
+  // min_power_..100, so a motor that needs a minimum power never sits in a dead
+  // zone and no direction tracking (lift/snap) is needed. Sign is preserved.
   const int32_t min_power = static_cast<int32_t>(this->min_power_);
-
-  if (power != 0 && std::abs(power) < min_power) {
-    const bool increasing = std::abs(raw) > std::abs(this->last_raw_value_);
-    if (increasing) {
-      // Heading up from 0 (or from another below-threshold value): lift to
-      // min_power_ so the motor actually engages instead of just humming.
-      power = (power > 0) ? min_power : -min_power;
-    } else {
-      // Heading down into the dead zone: snap to a real stop instead of
-      // getting stuck at min_power_, unable to go any lower.
-      power = 0;
-    }
-  }
-  // Remember what was actually applied, not the raw request: after a snap to 0
-  // the next step up (raw 1) must compare against 0 to count as "increasing",
-  // not against the stale below-threshold raw (e.g. 9), or it re-snaps to 0.
-  this->last_raw_value_ = power;
+  const int32_t mag = std::min<int32_t>(100, std::abs(raw));
+  int32_t power = 0;
+  if (mag != 0)
+    power = min_power + ((mag - 1) * (100 - min_power) + 49) / 99;
+  if (raw < 0)
+    power = -power;
 
   // LWP3 motor writes are write-without-response (no ack), so this is
-  // published optimistically - using the remapped value so the UI reflects
-  // what was actually sent.
-  this->publish_state(power);
+  // published optimistically. The published value is the REQUESTED speed (what
+  // the UI, knobs and remotes read back and step from), not the mapped power.
+  this->publish_state(raw);
   this->parent_->set_motor_power(this->port_, static_cast<int8_t>(power));
 }
 
