@@ -37,6 +37,14 @@ lwp3_hub:
       - A
       - B
 
+# The hub's own battery level (%); a low value blinks its status LED (see
+# controls.yaml, `hub_battery_low_pct`).
+sensor:
+  - platform: lwp3_hub
+    lwp3_hub_id: ${hub_id}
+    name: "${hub_name} Battery"
+    id: ${hub_id}_battery
+
 number:
   - platform: lwp3_hub
     lwp3_hub_id: ${hub_id}

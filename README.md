@@ -75,7 +75,9 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   inactivity timeout (2 min when every motor is stopped, 10 min otherwise, with
   a 30 s blinking warning; all motors are zeroed first), woken back up by
   turning or pressing any knob (EXT1 `ANY_HIGH` on all 12 knob lines), with a
-  status LED per hub plus a dual-color (common-anode) LED: the second channel
+  status LED per hub (solid = connected, 1 Hz blink together = coupled, on with three
+  short dips off, then 2 s on = that hub's battery is under `hub_battery_low_pct`,
+  20 % by default; read from the hub itself) plus a dual-color (common-anode) LED: the second channel
   is blue on the current board - blue = a hub is connected, purple (red+blue) =
   none, alternating with red = battery low (measured through a divider on
   GPIO36).
@@ -89,7 +91,7 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   hub (`light: true` on each "Hub N Headlight" number, `light_b` in the full
   config). It is on while the hub moves; hold the knob button and turn to dim it
   by hand (a plain click returns it to automatic).
-- Duplo stall reset (dev config, Hub 1): the base's internal speedometer is
+- Duplo stall reset (both configs, Hub 1, `hub1-stall.yaml`): the base's internal speedometer is
   exposed as "Hub 1 Measured Speed" (`sensor` with `type: speedometer`, raw
   units). If it drops to 0 and stays 0 for 1 s while Hub 1 is still commanded to
   move, Hub 1 is stopped (everything when coupled), Knob 1 is re-zeroed and

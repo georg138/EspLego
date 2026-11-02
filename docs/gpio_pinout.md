@@ -90,6 +90,14 @@ non-RTC pins (22, 21, 17, 16) to leave the RTC pins to the knobs.
 - A fifth knob would need three more pins; only GPIO2 and GPIO15 (strapping)
   are free, so it would also need a hub/status LED moved or an I/O expander.
 
+## Hub status LEDs
+
+Solid while the hub is connected, off when not. They blink together at 1 Hz
+while coupled. A hub whose own battery is below `hub_battery_low_pct` (20 %)
+instead stays on with three short dips off, then 2 s on (this wins over the coupled
+blink).
+Battery levels come from each hub's "Hub N Battery" sensor.
+
 ## Extra buttons
 
 - **Couple Hubs (GPIO18):** toggles coupled mode; while coupled the connected hubs'

@@ -14,6 +14,8 @@ substitutions:
   # Speed change per knob detent (%). 5 = a full turn of a 20-detent KY-040
   # goes 0 -> 100; use "1" for fine control.
   knob_step: "5"
+  # Hub battery (%) below which that hub's status LED double-blinks.
+  hub_battery_low_pct: "20"
 
 packages:
   base: !include common/base.yaml
@@ -21,6 +23,8 @@ packages:
   safety: !include common/safety.yaml
   # Knobs, buttons, LEDs, battery sensor and deep sleep (see controls.yaml).
   controls: !include controls.yaml
+  # Duplo speedometer + stall reset for Hub 1 (see hub1-stall.yaml).
+  hub1_stall: !include hub1-stall.yaml
   hub1: !include
     file: hub-package.yaml
     vars:

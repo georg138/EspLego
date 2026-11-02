@@ -118,6 +118,9 @@ root.
   sound buttons) don't belong in this shared template — add them as a
   one-off block in the top-level config instead, targeting that hub's
   `lwp3_hub_id` directly.
+- `esphome/hub1-stall.yaml`: Hub 1's Duplo speedometer sensor and stall reset,
+  included by both top-level configs (Hub 1 must be the Duplo base; Hub 5 has
+  no speedometer entity).
 - Physical GPIO wiring (rotary encoder, buttons, status LEDs, battery
   sensor, deep sleep wake pin, inactivity timer) lives only in
   `esphome/controls.yaml`, which both top-level configs include — never in

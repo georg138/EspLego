@@ -111,13 +111,6 @@ interval:
                      id(hub5_ble)->connected();
           float volts = id(battery_v).state;  // NaN until the first reading
           bool low = !std::isnan(volts) && volts < ${battery_low_v};
-          // Hub LEDs: solid while connected, blinking in unison (1 Hz) while coupled.
-          // Hub 5 shares Hub 1's LED (they are mutually exclusive alternatives).
-          const bool lit = !id(coupled) || (tick % 2) == 0;
-          id(hub1_status_led).set_state((id(hub1_ble)->connected() || id(hub5_ble)->connected()) && lit);
-          id(hub2_status_led).set_state(id(hub2_ble)->connected() && lit);
-          id(hub3_status_led).set_state(id(hub3_ble)->connected() && lit);
-          id(hub4_status_led).set_state(id(hub4_ble)->connected() && lit);
           bool green = true;
           bool red = !hub;  // amber when no hub
           if (low && (tick % 2) == 1) {  // alternate with red
@@ -130,6 +123,33 @@ interval:
           }
           id(status_green).set_state(green);
           id(status_red).set_state(red);
+
+  # Hub LEDs (250 ms tick): off = not connected, solid = connected, 1 Hz blink in
+  # unison = coupled, and for a hub whose battery is under ${hub_battery_low_pct} %:
+  # on with three short dips off, then 2 s on (wins over the coupled blink). Hub 5 shares Hub 1's
+  # LED (they are mutually exclusive alternatives).
+  - interval: 250ms
+    then:
+      - lambda: |-
+          if (id(going_to_sleep))
+            return;  // the sleep sequence already turned them off
+          static uint32_t tick = 0;
+          tick++;
+          auto led = [&](bool connected, float battery_pct) -> bool {
+            if (!connected)
+              return false;
+            if (!std::isnan(battery_pct) && battery_pct < ${hub_battery_low_pct}) {
+              const uint32_t phase = tick % 13;  // off, on, off, on, off, then 8 x 250 ms on
+              return !(phase == 0 || phase == 2 || phase == 4);
+            }
+            return !id(coupled) || ((tick / 2) % 2) == 0;
+          };
+          const bool use5 = id(hub5_ble)->connected() && !id(hub1_ble)->connected();
+          id(hub1_status_led).set_state(led(id(hub1_ble)->connected() || id(hub5_ble)->connected(),
+                                            use5 ? id(hub5_battery).state : id(hub1_battery).state));
+          id(hub2_status_led).set_state(led(id(hub2_ble)->connected(), id(hub2_battery).state));
+          id(hub3_status_led).set_state(led(id(hub3_ble)->connected(), id(hub3_battery).state));
+          id(hub4_status_led).set_state(led(id(hub4_ble)->connected(), id(hub4_battery).state));
 
 # Physical controls: four KY-040 knobs, one per hub (see knob-package.yaml), added
 # via the knob1..knob4 packages above. Each knob's CLK/DT/SW pins are listed there
