@@ -26,9 +26,30 @@ constexpr uint8_t HUB_ID = 0x00;
 // Message types (byte 2 of every message).
 constexpr uint8_t MSG_TYPE_HUB_PROPERTIES = 0x01;
 constexpr uint8_t MSG_TYPE_HUB_ATTACHED_IO = 0x04;
+constexpr uint8_t MSG_TYPE_PORT_INFORMATION_REQUEST = 0x21;
+constexpr uint8_t MSG_TYPE_PORT_MODE_INFORMATION_REQUEST = 0x22;
 constexpr uint8_t MSG_TYPE_PORT_INPUT_FORMAT_SETUP_SINGLE = 0x41;
 constexpr uint8_t MSG_TYPE_PORT_VALUE_SINGLE = 0x45;
+constexpr uint8_t MSG_TYPE_PORT_INFORMATION = 0x43;
+constexpr uint8_t MSG_TYPE_PORT_MODE_INFORMATION = 0x44;
 constexpr uint8_t MSG_TYPE_PORT_OUTPUT_COMMAND = 0x81;
+constexpr uint8_t MSG_TYPE_PORT_OUTPUT_COMMAND_FEEDBACK = 0x82;
+
+// Port Information Request (0x21) information type: mode info (capabilities,
+// mode count, input/output mode bitmasks).
+constexpr uint8_t PORT_INFO_MODE_INFO = 0x01;
+// Port Mode Information Request (0x22) mode information type: the mode's name.
+constexpr uint8_t MODE_INFO_NAME = 0x00;
+// ... the mode's RAW and SI value ranges (two floats: min, max).
+constexpr uint8_t MODE_INFO_RAW = 0x01;
+constexpr uint8_t MODE_INFO_SI = 0x03;
+
+// Port Output Command Feedback (0x82) flags, one byte per reported port.
+constexpr uint8_t FEEDBACK_IN_PROGRESS = 0x01;
+constexpr uint8_t FEEDBACK_COMPLETED = 0x02;
+constexpr uint8_t FEEDBACK_DISCARDED = 0x04;
+constexpr uint8_t FEEDBACK_IDLE = 0x08;
+constexpr uint8_t FEEDBACK_BUSY = 0x10;
 
 // Hub Properties (0x01): property IDs (byte 3) and operations (byte 4).
 constexpr uint8_t HUB_PROP_BATTERY_VOLTAGE = 0x06;  // percentage, 0-100
@@ -51,6 +72,10 @@ constexpr uint8_t IO_EVENT_DETACHED = 0x00;
 constexpr uint8_t IO_EVENT_ATTACHED = 0x01;
 constexpr uint8_t IO_EVENT_ATTACHED_VIRTUAL = 0x02;
 
+// Hub Attached I/O type ID of the hub's internal battery voltage sensor (its
+// port ID differs per hub type, e.g. 0x3C on the Powered Up Train Hub).
+constexpr uint16_t IO_TYPE_VOLTAGE = 0x0014;
+
 // Port Output Command (0x81) startup/completion info byte (byte 4).
 constexpr uint8_t STARTUP_EXECUTE_IMMEDIATELY = 0x10;
 constexpr uint8_t COMPLETION_COMMAND_FEEDBACK = 0x01;
@@ -59,6 +84,9 @@ constexpr uint8_t COMPLETION_COMMAND_FEEDBACK = 0x01;
 constexpr uint8_t SUBCMD_WRITE_DIRECT_MODE_DATA = 0x51;
 // Direct mode data mode byte (byte 6): mode 0 is power/PWM on every motor type.
 constexpr uint8_t MODE_POWER = 0x00;
+// MODE_POWER payloads: -100..100 = power (0 = float, the motor coasts), and
+// 127 = brake (motor terminals shorted, stops hard).
+constexpr int8_t MOTOR_POWER_BRAKE = 127;
 // Direct mode data mode byte for the Duplo Train Base's built-in speaker:
 // mode 1 plays one of a fixed set of predefined sounds (payload = sound ID).
 constexpr uint8_t MODE_SOUND = 0x01;
@@ -84,7 +112,7 @@ enum class DuploSound : uint8_t {
 uint8_t message_type(const uint8_t *data, size_t len);
 
 /// Builds a full Port Output Command message that sets a motor's power.
-/// `power` is signed, -100..100 (0 stops the motor). Returned vector includes
+/// `power` is signed, -100..100 (0 lets the motor coast), or MOTOR_POWER_BRAKE. Returned vector includes
 /// the leading length byte, ready to write to the LWP3 characteristic.
 std::vector<uint8_t> encode_motor_power(uint8_t port, int8_t power);
 
@@ -97,7 +125,9 @@ std::vector<uint8_t> encode_sound(uint8_t port, DuploSound sound);
 /// active input/output mode for a port. Some devices (e.g. the Duplo Train
 /// Base speaker) silently ignore WriteDirectModeData commands for a mode
 /// until it's been activated this way first.
-std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications);
+/// `delta` is the change in raw value that triggers a new notification.
+std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications,
+                                                    uint32_t delta = 1);
 
 /// Builds a full Port Output Command message that sets an RGB LED (e.g. the
 /// Remote's, on REMOTE_PORT_LED) to the given color.
@@ -106,6 +136,12 @@ std::vector<uint8_t> encode_led_rgb(uint8_t port, uint8_t r, uint8_t g, uint8_t 
 /// Builds a Hub Properties (0x01) message that enables update notifications
 /// for a hub property (e.g. HUB_PROP_BATTERY_VOLTAGE).
 std::vector<uint8_t> encode_hub_property_enable_updates(uint8_t property);
+
+/// Builds a Port Information Request (0x21), e.g. PORT_INFO_MODE_INFO.
+std::vector<uint8_t> encode_port_information_request(uint8_t port, uint8_t info_type);
+
+/// Builds a Port Mode Information Request (0x22), e.g. MODE_INFO_NAME.
+std::vector<uint8_t> encode_port_mode_information_request(uint8_t port, uint8_t mode, uint8_t info_type);
 
 struct HubAttachedIoEvent {
   uint8_t port{0};
@@ -134,6 +170,47 @@ struct HubPropertyUpdate {
 
 /// Parses a Hub Properties (0x01) Update message (operation 0x06).
 bool decode_hub_property_update(const uint8_t *data, size_t len, HubPropertyUpdate &out);
+
+struct PortModeInfo {
+  uint8_t port{0};
+  uint8_t capabilities{0};  // bit 0 output, 1 input, 2 combinable, 3 synchronizable
+  uint8_t mode_count{0};
+  uint16_t input_modes{0};   // bit N = mode N is an input mode
+  uint16_t output_modes{0};  // bit N = mode N is an output mode
+};
+
+/// Parses a Port Information (0x43) message of type PORT_INFO_MODE_INFO.
+bool decode_port_mode_info(const uint8_t *data, size_t len, PortModeInfo &out);
+
+struct PortModeName {
+  uint8_t port{0};
+  uint8_t mode{0};
+  const char *name{nullptr};  // points into the caller's buffer, NOT null-terminated
+  size_t name_len{0};
+};
+
+/// Parses a Port Mode Information (0x44) message of type MODE_INFO_NAME.
+bool decode_port_mode_name(const uint8_t *data, size_t len, PortModeName &out);
+
+struct PortModeRange {
+  uint8_t port{0};
+  uint8_t mode{0};
+  uint8_t info_type{0};  // MODE_INFO_RAW or MODE_INFO_SI
+  float min{0};
+  float max{0};
+};
+
+/// Parses a Port Mode Information (0x44) message of type MODE_INFO_RAW or MODE_INFO_SI.
+bool decode_port_mode_range(const uint8_t *data, size_t len, PortModeRange &out);
+
+struct OutputCommandFeedback {
+  uint8_t port{0};
+  uint8_t flags{0};  // FEEDBACK_* bits
+};
+
+/// Parses a Port Output Command Feedback (0x82) message, which can report
+/// several ports. Returns false if malformed.
+bool decode_output_command_feedback(const uint8_t *data, size_t len, std::vector<OutputCommandFeedback> &out);
 
 }  // namespace lwp3_protocol
 }  // namespace lwp3_hub

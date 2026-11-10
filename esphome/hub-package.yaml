@@ -1,7 +1,7 @@
 # Reusable per-hub package. Instantiated once per physical LEGO Powered Up hub
 # from train-controller.yaml via `packages:` + `vars:`. Each instantiation needs
 # unique substitution values: hub_id, hub_mac, hub_name. `min_power_a`/
-# `min_power_b` and `light_b` ("false") default at the top level in
+# `min_power_b`, `max_power_a`, `battery_full_v` and `light_b` default at the top level in
 # train-controller.yaml - override per-instantiation for a motor that needs a
 # boost to overcome static friction (e.g. the Duplo Train Base's).
 #
@@ -33,6 +33,8 @@ lwp3_hub:
   - id: ${hub_id}
     name: ${hub_name}
     ble_client_id: ${hub_id}_ble
+    # Full pack voltage: max_power below is a share of it (see lwp3_hub).
+    battery_full_voltage: ${battery_full_v}
     ports:
       - A
       - B
@@ -52,6 +54,7 @@ number:
     name: "${hub_name} Port A Power"
     id: ${hub_id}_port_a
     min_power: ${min_power_a}
+    max_power: ${max_power_a}  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: ${hub_id}
     port: B

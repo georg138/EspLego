@@ -1,5 +1,7 @@
 #include "lwp3_protocol.h"
 
+#include <cstring>
+
 namespace esphome {
 namespace lwp3_hub {
 namespace lwp3_protocol {
@@ -58,18 +60,28 @@ std::vector<uint8_t> encode_hub_property_enable_updates(uint8_t property) {
   return msg;
 }
 
-std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications) {
+std::vector<uint8_t> encode_port_input_format_setup(uint8_t port, uint8_t mode, bool enable_notifications,
+                                                    uint32_t delta) {
   std::vector<uint8_t> msg = {
       0,  // length, filled in below
       HUB_ID,
       MSG_TYPE_PORT_INPUT_FORMAT_SETUP_SINGLE,
       port,
       mode,
-      0x01, 0x00, 0x00, 0x00,  // delta interval = 1 (uint32, little-endian)
+      static_cast<uint8_t>(delta), static_cast<uint8_t>(delta >> 8),  // delta interval (uint32, little-endian)
+      static_cast<uint8_t>(delta >> 16), static_cast<uint8_t>(delta >> 24),
       static_cast<uint8_t>(enable_notifications ? 0x01 : 0x00),
   };
   msg[0] = static_cast<uint8_t>(msg.size());
   return msg;
+}
+
+std::vector<uint8_t> encode_port_information_request(uint8_t port, uint8_t info_type) {
+  return {5, HUB_ID, MSG_TYPE_PORT_INFORMATION_REQUEST, port, info_type};
+}
+
+std::vector<uint8_t> encode_port_mode_information_request(uint8_t port, uint8_t mode, uint8_t info_type) {
+  return {6, HUB_ID, MSG_TYPE_PORT_MODE_INFORMATION_REQUEST, port, mode, info_type};
 }
 
 bool decode_hub_attached_io(const uint8_t *data, size_t len, HubAttachedIoEvent &out) {
@@ -111,6 +123,54 @@ bool decode_hub_property_update(const uint8_t *data, size_t len, HubPropertyUpda
   out.property = data[3];
   out.payload = data + 5;
   out.payload_len = len - 5;
+  return true;
+}
+
+bool decode_port_mode_info(const uint8_t *data, size_t len, PortModeInfo &out) {
+  // port, info type, capabilities, mode count, input modes (u16), output modes (u16)
+  if (message_type(data, len) != MSG_TYPE_PORT_INFORMATION || len < 11 || data[4] != PORT_INFO_MODE_INFO)
+    return false;
+  out.port = data[3];
+  out.capabilities = data[5];
+  out.mode_count = data[6];
+  out.input_modes = static_cast<uint16_t>(data[7] | (static_cast<uint16_t>(data[8]) << 8));
+  out.output_modes = static_cast<uint16_t>(data[9] | (static_cast<uint16_t>(data[10]) << 8));
+  return true;
+}
+
+bool decode_port_mode_name(const uint8_t *data, size_t len, PortModeName &out) {
+  // port, mode, mode info type, then up to 11 name characters (zero-padded)
+  if (message_type(data, len) != MSG_TYPE_PORT_MODE_INFORMATION || len < 6 || data[5] != MODE_INFO_NAME)
+    return false;
+  out.port = data[3];
+  out.mode = data[4];
+  out.name = reinterpret_cast<const char *>(data + 6);
+  out.name_len = 0;
+  while (6 + out.name_len < len && data[6 + out.name_len] != 0)
+    out.name_len++;
+  return true;
+}
+
+bool decode_port_mode_range(const uint8_t *data, size_t len, PortModeRange &out) {
+  // port, mode, mode info type, then min and max as little-endian floats
+  if (message_type(data, len) != MSG_TYPE_PORT_MODE_INFORMATION || len < 14 ||
+      (data[5] != MODE_INFO_RAW && data[5] != MODE_INFO_SI))
+    return false;
+  out.port = data[3];
+  out.mode = data[4];
+  out.info_type = data[5];
+  std::memcpy(&out.min, data + 6, sizeof(float));  // ESP32 is little-endian too
+  std::memcpy(&out.max, data + 10, sizeof(float));
+  return true;
+}
+
+bool decode_output_command_feedback(const uint8_t *data, size_t len, std::vector<OutputCommandFeedback> &out) {
+  // Pairs of (port, feedback flags) after the 3-byte header.
+  if (message_type(data, len) != MSG_TYPE_PORT_OUTPUT_COMMAND_FEEDBACK || len < 5)
+    return false;
+  out.clear();
+  for (size_t i = 3; i + 1 < len; i += 2)
+    out.push_back({data[i], data[i + 1]});
   return true;
 }
 

@@ -55,8 +55,12 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 - Drives each hub's motor port(s) as an ESPHome `number` entity (−100..100),
   auto-discovered via the hub's own Hub Attached I/O announcement.
 - Per-hub `min_power:` mapping: requests 1..100 map linearly onto
-  `min_power`..100, so a motor that needs a boost to overcome static friction
+  `min_power`..cap, so a motor that needs a boost to overcome static friction
   never hums in place at low power and the speed range stays smooth.
+- Motor voltage cap: request 100 = `max_power` (80) % of the hub's full-battery
+  voltage (`battery_full_voltage`), held constant as the batteries drain by
+  reading the hub's own voltage sensor and raising the PWM. `min_power` is
+  scaled the same way.
 - Duplo Train Base built-in speaker support (5 predefined sounds as
   `button` entities).
 - A physical KY-040 rotary encoder + button: turn to set speed, press to

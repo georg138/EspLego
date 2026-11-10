@@ -7,6 +7,11 @@ substitutions:
   # this below.
   min_power_a: "10"
   min_power_b: "10"
+  # Motor voltage cap: request 100 = max_power_a % of the full-battery voltage,
+  # held as the batteries drain (the hub's voltage sensor raises the PWM).
+  # battery_full_v: Powered Up Train Hub, 6x AA.
+  max_power_a: "80"
+  battery_full_v: "9.0V"
   # Port B is always a Powered Up light (headlight follows the hub's motion).
   light_b: "true"
   # Battery pack voltage (V) below which the status LED alternates with red.
@@ -37,6 +42,9 @@ packages:
       # Powered-Up-Train-Hub default above.
       min_power_a: "50"
       min_power_b: "0"
+      # Duplo Train Base pack (3 cells) - check the logged voltage with fresh
+      # batteries and adjust.
+      battery_full_v: "4.5V"
   hub2: !include
     file: hub-package.yaml
     vars:

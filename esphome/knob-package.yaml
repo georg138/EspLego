@@ -25,7 +25,7 @@
 # the knob button stops the hub, on Stop All, and when coupling is toggled; each
 # re-sets it so the knob's CURRENT position maps to the hub's current speed. A
 # hub moved from a remote or Home Assistant is therefore not followed: the next
-# turn jumps to the knob's own position. Pressing the button stops the hub (and
+# turn jumps to the knob's own position. Pressing the button brakes the hub (and
 # puts a port-B headlight back to automatic); turning while pushed dims that
 # light. Every action restarts the inactivity timer. Waking from deep sleep is NOT
 # done here: the SW pins are the EXT1 wake set (see deep_sleep in controls.yaml
@@ -145,14 +145,18 @@ binary_sensor:
                 then:
                   - script.execute: stop_all  # coupled: a click stops every hub
                 else:
-                  - number.set: { id: "${hub_id}_port_a", value: 0 }
-                  - number.set: { id: "${hub_id}_port_b", value: 0 }
-                  - number.set: { id: "${alt_hub_id}_port_a", value: 0 }
-                  - number.set: { id: "${alt_hub_id}_port_b", value: 0 }
-                  # Back to automatic headlight (after the 0 above, so it ends up off).
+                  # Brake (not coast) both hubs of this knob, then the headlight
+                  # back to automatic (after the brake, so it ends up off). A
+                  # knob without an alternative hub has alt == hub: send once.
                   - lambda: |-
+                      id(${hub_id}_port_a)->brake();
+                      id(${hub_id}_port_b)->brake();
                       id(${hub_id}_port_b)->set_light_override(-1);
-                      id(${alt_hub_id}_port_b)->set_light_override(-1);
+                      if (id(${alt_hub_id}_port_a) != id(${hub_id}_port_a)) {
+                        id(${alt_hub_id}_port_a)->brake();
+                        id(${alt_hub_id}_port_b)->brake();
+                        id(${alt_hub_id}_port_b)->set_light_override(-1);
+                      }
                       id(ref_speed) = 0;
                   # The knob's current position becomes the new zero.
                   - script.execute:

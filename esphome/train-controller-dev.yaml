@@ -101,30 +101,35 @@ lwp3_hub:
   - id: hub1
     name: "Hub 1"
     ble_client_id: hub1_ble
+    battery_full_voltage: 4.5V  # Duplo Train Base (3 cells): check the logged fresh voltage
     ports:
       - A
       - B
   - id: hub2
     name: "Hub 2"
     ble_client_id: hub2_ble
+    battery_full_voltage: 9.0V  # Powered Up Train Hub, 6x AA
     ports:
       - A
       - B
   - id: hub3
     name: "Hub 3"
     ble_client_id: hub3_ble
+    battery_full_voltage: 9.0V  # Powered Up Train Hub, 6x AA
     ports:
       - A
       - B
   - id: hub4
     name: "Hub 4"
     ble_client_id: hub4_ble
+    battery_full_voltage: 9.0V  # Powered Up Train Hub, 6x AA
     ports:
       - A
       - B
   - id: hub5
     name: "Hub 5"
     ble_client_id: hub5_ble
+    battery_full_voltage: 9.0V  # Powered Up Train Hub, 6x AA
     ports:
       - A
       - B
@@ -161,6 +166,7 @@ number:
     # Duplo Train Base motor needs at least ~50 power to overcome static
     # friction and actually move - anything below that just hums in place.
     min_power: 50
+    max_power: 80  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub1
     port: B
@@ -177,6 +183,7 @@ number:
     # plugged into either A or B, check the logs for which one reports
     # "device attached". Needs a smaller boost than Hub 1's Duplo motor.
     min_power: 10
+    max_power: 80  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub2
     port: B
@@ -191,6 +198,7 @@ number:
     id: hub3_port_a
     # Identical hub type to Hub 2 (plain LEGO Powered Up Train Hub).
     min_power: 10
+    max_power: 80  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub3
     port: B
@@ -205,6 +213,7 @@ number:
     id: hub4_port_a
     # Identical hub type to Hubs 2 and 3 (plain LEGO Powered Up Train Hub).
     min_power: 10
+    max_power: 80  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub4
     port: B
@@ -220,6 +229,7 @@ number:
     name: "Hub 5 Port A Power"
     id: hub5_port_a
     min_power: 10
+    max_power: 80  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub5
     port: B

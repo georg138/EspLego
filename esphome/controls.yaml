@@ -305,21 +305,21 @@ script:
           apply(id(hub3_ble)->connected(), id(hub3_port_a), id(hub3_port_b));
           apply(id(hub4_ble)->connected(), id(hub4_port_a), id(hub4_port_b));
           apply(id(hub5_ble)->connected(), id(hub5_port_a), id(hub5_port_b));
-  # Zero every hub's motors unconditionally and drop manual headlight overrides.
+  # Brake every hub's motors unconditionally and drop manual headlight overrides.
   # Does NOT touch inactivity_timer: the sleep sequence calls this from inside it.
   - id: stop_all
     then:
       - lambda: |-
-          id(hub1_port_a)->make_call().set_value(0).perform();
-          id(hub1_port_b)->make_call().set_value(0).perform();
-          id(hub2_port_a)->make_call().set_value(0).perform();
-          id(hub2_port_b)->make_call().set_value(0).perform();
-          id(hub3_port_a)->make_call().set_value(0).perform();
-          id(hub3_port_b)->make_call().set_value(0).perform();
-          id(hub4_port_a)->make_call().set_value(0).perform();
-          id(hub4_port_b)->make_call().set_value(0).perform();
-          id(hub5_port_a)->make_call().set_value(0).perform();
-          id(hub5_port_b)->make_call().set_value(0).perform();
+          id(hub1_port_a)->brake();
+          id(hub1_port_b)->brake();
+          id(hub2_port_a)->brake();
+          id(hub2_port_b)->brake();
+          id(hub3_port_a)->brake();
+          id(hub3_port_b)->brake();
+          id(hub4_port_a)->brake();
+          id(hub4_port_b)->brake();
+          id(hub5_port_a)->brake();
+          id(hub5_port_b)->brake();
           id(hub1_port_b)->set_light_override(-1);
           id(hub2_port_b)->set_light_override(-1);
           id(hub3_port_b)->set_light_override(-1);
@@ -369,6 +369,14 @@ script:
                   id(idle_s)++;
                 }
                 id(idle_limit_s) = running ? 600 : 120;
+                // Never sleep while a client streams logs (`esphome logs` over
+                // the API) - a debugging session must not lose the device.
+                for (auto &client : api::global_api_server->active_clients()) {
+                  if (client->get_log_subscription_level() > 0) {
+                    id(idle_s) = 0;
+                    break;
+                  }
+                }
                 id(sleep_warning) = id(idle_s) >= id(idle_limit_s) - 30;
       - lambda: id(sleep_warning) = true;
       # Safety: zero every motor before sleeping regardless of whether a train

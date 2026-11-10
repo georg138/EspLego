@@ -33,7 +33,46 @@ void LWP3MotorNumber::set_light_override(int override_value) {
 void LWP3MotorNumber::reset() {
   this->light_override_ = -1;
   this->last_raw_value_ = 0;
+  this->last_power_ = 0;
   this->publish_state(0);
+}
+
+void LWP3MotorNumber::brake() {
+  if (this->light_) {
+    this->control(0);
+    return;
+  }
+  this->last_raw_value_ = 0;  // so refresh() doesn't restart it
+  this->publish_state(0);
+  this->send_power_(lwp3_protocol::MOTOR_POWER_BRAKE);
+}
+
+void LWP3MotorNumber::refresh() {
+  if (this->light_ || this->last_raw_value_ == 0)
+    return;
+  const int8_t power = this->mapped_power_(this->last_raw_value_);
+  if (power != this->last_power_)
+    this->send_power_(power);
+}
+
+int8_t LWP3MotorNumber::mapped_power_(int32_t raw) const {
+  // Stateless mapping: 0 stays 0, any nonzero request 1..100 maps linearly onto
+  // min_power_..max_power_, so a motor that needs a minimum power never sits in
+  // a dead zone and no direction tracking (lift/snap) is needed. Sign is
+  // preserved. Both ends are % of the full-battery voltage, turned into PWM for
+  // the current voltage by LWP3Hub::scaled_power().
+  const int32_t min_power = this->parent_->scaled_power(this->min_power_);
+  const int32_t cap = std::max(min_power, this->parent_->scaled_power(this->max_power_));
+  const int32_t mag = std::min<int32_t>(100, std::abs(raw));
+  int32_t power = 0;
+  if (mag != 0)
+    power = min_power + ((mag - 1) * (cap - min_power) + 49) / 99;
+  return static_cast<int8_t>(raw < 0 ? -power : power);
+}
+
+void LWP3MotorNumber::send_power_(int8_t power) {
+  this->last_power_ = power;
+  this->parent_->set_motor_power(this->port_, power);
 }
 
 void LWP3MotorNumber::control(float value) {
@@ -45,22 +84,12 @@ void LWP3MotorNumber::control(float value) {
     this->apply_light_();
     return;
   }
-  // Stateless mapping: 0 stays 0, any nonzero request 1..100 maps linearly onto
-  // min_power_..100, so a motor that needs a minimum power never sits in a dead
-  // zone and no direction tracking (lift/snap) is needed. Sign is preserved.
-  const int32_t min_power = static_cast<int32_t>(this->min_power_);
-  const int32_t mag = std::min<int32_t>(100, std::abs(raw));
-  int32_t power = 0;
-  if (mag != 0)
-    power = min_power + ((mag - 1) * (100 - min_power) + 49) / 99;
-  if (raw < 0)
-    power = -power;
-
-  // LWP3 motor writes are write-without-response (no ack), so this is
-  // published optimistically. The published value is the REQUESTED speed (what
+  this->last_raw_value_ = raw;
+  // Published optimistically (the hub only confirms later, via command
+  // feedback, see LWP3Hub::loop()). The published value is the REQUESTED speed (what
   // the UI, knobs and remotes read back and step from), not the mapped power.
   this->publish_state(raw);
-  this->parent_->set_motor_power(this->port_, static_cast<int8_t>(power));
+  this->send_power_(this->mapped_power_(raw));
 }
 
 }  // namespace lwp3_hub

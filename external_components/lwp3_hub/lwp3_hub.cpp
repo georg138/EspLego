@@ -1,6 +1,9 @@
 #include "lwp3_hub.h"
 #include "number/lwp3_motor_number.h"
+#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+
+#include <algorithm>
 
 #ifdef USE_ESP32
 
@@ -98,6 +101,8 @@ void LWP3Hub::handle_notify_(const uint8_t *data, uint16_t len) {
       lwp3_protocol::PortValueEvent event;
       if (!lwp3_protocol::decode_port_value_single(data, len, event))
         return;
+      if (event.port == this->voltage_port_)
+        this->handle_voltage_(event.payload, event.payload_len);
       for (const auto &listener : this->port_listeners_) {
         if (listener.port == event.port && listener.on_value)
           listener.on_value(event.payload, event.payload_len);
@@ -115,6 +120,13 @@ void LWP3Hub::handle_notify_(const uint8_t *data, uint16_t len) {
       }
       return;
     }
+    case lwp3_protocol::MSG_TYPE_PORT_OUTPUT_COMMAND_FEEDBACK:
+      this->handle_output_feedback_(data, len);
+      return;
+    case lwp3_protocol::MSG_TYPE_PORT_INFORMATION:
+    case lwp3_protocol::MSG_TYPE_PORT_MODE_INFORMATION:
+      this->handle_port_info_(data, len);
+      return;
     default:
       break;
   }
@@ -149,6 +161,21 @@ void LWP3Hub::handle_notify_(const uint8_t *data, uint16_t len) {
       ESP_LOGW(TAG, "[%s] Port %s has a device attached but isn't declared in YAML `ports:`",
                this->hub_name_.c_str(), label.c_str());
     }
+    // Battery voltage sensor: learn its scale, then subscribe (for scaled_power()).
+    // Delta 40 raw is about 0.1 V on the Train Hub.
+    if (io_event.io_type_id == lwp3_protocol::IO_TYPE_VOLTAGE && this->battery_full_mv_ > 0) {
+      this->voltage_port_ = io_event.port;
+      this->write_raw_(lwp3_protocol::encode_port_mode_information_request(io_event.port, 0,
+                                                                           lwp3_protocol::MODE_INFO_RAW));
+      this->write_raw_(lwp3_protocol::encode_port_mode_information_request(io_event.port, 0,
+                                                                           lwp3_protocol::MODE_INFO_SI));
+      this->write_raw_(lwp3_protocol::encode_port_input_format_setup(io_event.port, 0, true, 40));
+    }
+    // Ask which modes the device has; handle_port_info_() logs them.
+    if (is_motor_port) {
+      this->write_command_(io_event.port, lwp3_protocol::encode_port_information_request(
+                                              io_event.port, lwp3_protocol::PORT_INFO_MODE_INFO));
+    }
     // Activate each listened mode once per port (several binary_sensors can
     // share one button port), then let entities push any stored state.
     bool setup_sent = false;
@@ -172,6 +199,13 @@ void LWP3Hub::handle_notify_(const uint8_t *data, uint16_t len) {
     if (is_motor_port && this->motors_[io_event.port] != nullptr) {
       this->motors_[io_event.port]->publish_state(0);
     }
+    if (is_motor_port)
+      this->pending_[io_event.port] = {};
+    if (io_event.port == this->voltage_port_) {
+      this->voltage_port_ = 0xFF;
+      this->voltage_mv_ = NAN;
+      this->cap_mv_ = NAN;
+    }
     for (const auto &listener : this->port_listeners_) {
       if (listener.port == io_event.port && listener.on_reset)
         listener.on_reset();
@@ -183,6 +217,13 @@ void LWP3Hub::handle_disconnected_() {
   this->ready_ = false;
   this->char_handle_ = 0;
   this->attached_ports_ = 0;
+  this->pending_ = {};
+  this->feedback_seen_ = false;
+  this->voltage_port_ = 0xFF;
+  this->voltage_raw_max_ = 0;
+  this->voltage_si_max_ = 0;
+  this->voltage_mv_ = NAN;
+  this->cap_mv_ = NAN;
   for (uint8_t port = 0; port < LWP3_MAX_PORTS; port++) {
     if (this->motors_[port] != nullptr) {
       this->motors_[port]->reset();
@@ -209,22 +250,135 @@ void LWP3Hub::write_raw_(std::vector<uint8_t> payload) {
   }
 }
 
-void LWP3Hub::write_command_(uint8_t port, std::vector<uint8_t> payload) {
+bool LWP3Hub::write_command_(uint8_t port, std::vector<uint8_t> payload) {
   const std::string label = this->port_label_(port);
   if (!this->ready_) {
     ESP_LOGW(TAG, "[%s] Not connected yet, ignoring command for port %s", this->hub_name_.c_str(), label.c_str());
-    return;
+    return false;
   }
   if (!this->is_attached_(port)) {
     ESP_LOGW(TAG, "[%s] Port %s has no attached device, ignoring command", this->hub_name_.c_str(), label.c_str());
-    return;
+    return false;
   }
+  // A synchronous write error still returns true: the retry in loop() covers it.
   this->write_raw_(std::move(payload));
+  return true;
 }
 
 void LWP3Hub::set_motor_power(uint8_t port, int8_t power) {
   ESP_LOGD(TAG, "[%s] Port %s power -> %d", this->hub_name_.c_str(), this->port_label_(port).c_str(), power);
-  this->write_command_(port, lwp3_protocol::encode_motor_power(port, power));
+  if (port >= LWP3_MAX_PORTS) {
+    this->write_command_(port, lwp3_protocol::encode_motor_power(port, power));
+    return;
+  }
+  // A newer command replaces an unconfirmed older one: only the latest matters.
+  auto &cmd = this->pending_[port];
+  cmd.payload = lwp3_protocol::encode_motor_power(port, power);
+  cmd.retries = 0;
+  this->send_pending_(port);
+}
+
+void LWP3Hub::send_pending_(uint8_t port) {
+  auto &cmd = this->pending_[port];
+  if (!this->write_command_(port, cmd.payload)) {
+    cmd = {};
+    return;
+  }
+  cmd.sent_ms = millis();
+  cmd.unacked++;
+}
+
+void LWP3Hub::loop() {
+  if (!this->ready_ || !this->feedback_seen_)
+    return;
+  const uint32_t now = millis();
+  for (uint8_t port = 0; port < LWP3_MAX_PORTS; port++) {
+    auto &cmd = this->pending_[port];
+    if (cmd.payload.empty() || now - cmd.sent_ms < LWP3_COMMAND_RETRY_MS)
+      continue;
+    const std::string label = this->port_label_(port);
+    if (cmd.retries >= LWP3_COMMAND_MAX_RETRIES) {
+      ESP_LOGW(TAG, "[%s] Port %s: command still unconfirmed after %u retries, giving up", this->hub_name_.c_str(),
+               label.c_str(), cmd.retries);
+      cmd = {};
+      continue;
+    }
+    cmd.retries++;
+    ESP_LOGW(TAG, "[%s] Port %s: no feedback, re-sending (%u/%u)", this->hub_name_.c_str(), label.c_str(),
+             cmd.retries, LWP3_COMMAND_MAX_RETRIES);
+    // Earlier sends count as lost; a late feedback for one of them is accepted.
+    cmd.unacked = 0;
+    this->send_pending_(port);
+  }
+}
+
+void LWP3Hub::handle_output_feedback_(const uint8_t *data, uint16_t len) {
+  std::vector<lwp3_protocol::OutputCommandFeedback> feedback;
+  if (!lwp3_protocol::decode_output_command_feedback(data, len, feedback))
+    return;
+  if (!this->feedback_seen_) {
+    ESP_LOGI(TAG, "[%s] Command feedback active, unconfirmed commands will be re-sent", this->hub_name_.c_str());
+    this->feedback_seen_ = true;
+  }
+  for (const auto &fb : feedback) {
+    ESP_LOGV(TAG, "[%s] Port %s feedback 0x%02X", this->hub_name_.c_str(), this->port_label_(fb.port).c_str(),
+             fb.flags);
+    if (fb.port >= LWP3_MAX_PORTS ||
+        !(fb.flags & (lwp3_protocol::FEEDBACK_COMPLETED | lwp3_protocol::FEEDBACK_DISCARDED)))
+      continue;
+    auto &cmd = this->pending_[fb.port];
+    if (cmd.unacked > 0)
+      cmd.unacked--;
+    if (cmd.unacked == 0 && !cmd.payload.empty()) {
+      if (cmd.retries > 0) {
+        ESP_LOGI(TAG, "[%s] Port %s: command confirmed after %u retries", this->hub_name_.c_str(),
+                 this->port_label_(fb.port).c_str(), cmd.retries);
+      }
+      cmd = {};
+    }
+  }
+}
+
+void LWP3Hub::handle_port_info_(const uint8_t *data, uint16_t len) {
+  lwp3_protocol::PortModeInfo info;
+  if (lwp3_protocol::decode_port_mode_info(data, len, info)) {
+    ESP_LOGI(TAG, "[%s] Port %s: %u modes (inputs 0x%04X, outputs 0x%04X, capabilities 0x%02X)",
+             this->hub_name_.c_str(), this->port_label_(info.port).c_str(), info.mode_count, info.input_modes,
+             info.output_modes, info.capabilities);
+    if (info.port < LWP3_MAX_PORTS) {
+      this->input_modes_[info.port] = info.input_modes;
+      this->output_modes_[info.port] = info.output_modes;
+    }
+    for (uint8_t mode = 0; mode < info.mode_count && mode < 16; mode++) {
+      this->write_raw_(
+          lwp3_protocol::encode_port_mode_information_request(info.port, mode, lwp3_protocol::MODE_INFO_NAME));
+    }
+    return;
+  }
+  lwp3_protocol::PortModeRange range;
+  if (lwp3_protocol::decode_port_mode_range(data, len, range)) {
+    if (range.port == this->voltage_port_ && range.mode == 0) {
+      if (range.info_type == lwp3_protocol::MODE_INFO_RAW) {
+        this->voltage_raw_max_ = range.max;
+      } else {
+        this->voltage_si_max_ = range.max;
+      }
+      if (this->voltage_raw_max_ > 0 && this->voltage_si_max_ > 0) {
+        ESP_LOGI(TAG, "[%s] Voltage sensor on port %u: raw 0..%.0f = 0..%.0f mV, full battery %u mV",
+                 this->hub_name_.c_str(), range.port, this->voltage_raw_max_, this->voltage_si_max_,
+                 this->battery_full_mv_);
+      }
+    }
+    return;
+  }
+  lwp3_protocol::PortModeName name;
+  if (lwp3_protocol::decode_port_mode_name(data, len, name)) {
+    const bool known = name.port < LWP3_MAX_PORTS && name.mode < 16;
+    const bool in = known && ((this->input_modes_[name.port] >> name.mode) & 1);
+    const bool out = known && ((this->output_modes_[name.port] >> name.mode) & 1);
+    ESP_LOGI(TAG, "[%s] Port %s mode %u: %.*s%s%s", this->hub_name_.c_str(), this->port_label_(name.port).c_str(),
+             name.mode, static_cast<int>(name.name_len), name.name, in ? " [in]" : "", out ? " [out]" : "");
+  }
 }
 
 void LWP3Hub::set_led_rgb(uint8_t port, uint8_t r, uint8_t g, uint8_t b) {
@@ -237,6 +391,30 @@ void LWP3Hub::play_sound(uint8_t port, lwp3_protocol::DuploSound sound) {
   // commands are silently ignored by the hub firmware.
   this->write_command_(port, lwp3_protocol::encode_port_input_format_setup(port, lwp3_protocol::MODE_SOUND, true));
   this->write_command_(port, lwp3_protocol::encode_sound(port, sound));
+}
+
+void LWP3Hub::handle_voltage_(const uint8_t *payload, size_t len) {
+  if (len < 2 || this->voltage_raw_max_ <= 0 || this->voltage_si_max_ <= 0)
+    return;  // scale not known yet
+  const int16_t raw = static_cast<int16_t>(payload[0] | (payload[1] << 8));
+  const float mv = raw * this->voltage_si_max_ / this->voltage_raw_max_;
+  // Smooth, so the sag under motor load doesn't make the cap oscillate.
+  this->voltage_mv_ = std::isnan(this->voltage_mv_) ? mv : this->voltage_mv_ + 0.2f * (mv - this->voltage_mv_);
+  if (!std::isnan(this->cap_mv_) && std::fabs(this->voltage_mv_ - this->cap_mv_) < 50)
+    return;
+  this->cap_mv_ = this->voltage_mv_;
+  ESP_LOGI(TAG, "[%s] Battery %.2f V (full %.2f V): motor power scaled x%.2f", this->hub_name_.c_str(),
+           this->cap_mv_ / 1000.0f, this->battery_full_mv_ / 1000.0f, this->battery_full_mv_ / this->cap_mv_);
+  for (auto *motor : this->motors_) {
+    if (motor != nullptr)
+      motor->refresh();
+  }
+}
+
+int32_t LWP3Hub::scaled_power(uint8_t pct) const {
+  if (this->battery_full_mv_ == 0 || std::isnan(this->cap_mv_) || this->cap_mv_ <= 0)
+    return pct;
+  return std::min<int32_t>(100, std::lround(pct * static_cast<float>(this->battery_full_mv_) / this->cap_mv_));
 }
 
 }  // namespace lwp3_hub

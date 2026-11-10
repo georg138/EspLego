@@ -89,8 +89,14 @@ root.
   back into the hub instance rather than touching BLE directly.
 - `LWP3MotorNumber::control()` maps requests statelessly onto the motor's
   `min_power`: 0 stays 0 and any nonzero request 1..100 maps linearly onto
-  `min_power`..100 (sign kept), so a motor that needs a minimum power to move
+  `min_power`..cap (sign kept), so a motor that needs a minimum power to move
   (Duplo: 50) never sits in a dead zone and no direction tracking is needed.
+  The cap is `max_power` (80). Both `min_power` and `max_power` are % of the
+  hub's `battery_full_voltage`: the hub reads its own voltage sensor (io type
+  0x0014) and `LWP3Hub::scaled_power()` raises the PWM as the battery drains
+  (re-sent via `refresh()`), so a given request keeps giving the same motor
+  voltage. Without a known voltage they are plain PWM %. Button stops BRAKE (power 127) via `brake()`; motor
+  commands are re-sent until the hub's command feedback confirms them.
   The number publishes the REQUESTED speed, not the mapped power. (An older
   direction-aware lift/snap deadband was replaced because it made the absolute
   knob stutter.) With `light: true` the port is a headlight instead (on/off
@@ -113,7 +119,8 @@ root.
   config only); it runs the `stop_all` script from `controls.yaml`.
 - `esphome/hub-package.yaml`: reusable per-hub block (`ble_client` +
   `lwp3_hub` + per-port `number`), parametrized via substitutions
-  (`hub_id`, `hub_mac`, `hub_name`, `min_power_a`, `min_power_b`, `light_b`). Hub-specific
+  (`hub_id`, `hub_mac`, `hub_name`, `min_power_a`, `min_power_b`, `max_power_a`,
+  `battery_full_v`, `light_b`). Hub-specific
   extras that aren't generic across all hubs (e.g. one hub's Duplo speaker
   sound buttons) don't belong in this shared template — add them as a
   one-off block in the top-level config instead, targeting that hub's

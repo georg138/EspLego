@@ -11,6 +11,7 @@ lwp3_hub_ns = cg.esphome_ns.namespace("lwp3_hub")
 LWP3Hub = lwp3_hub_ns.class_("LWP3Hub", cg.Component, ble_client.BLEClientNode)
 
 CONF_PORTS = "ports"
+CONF_BATTERY_FULL_VOLTAGE = "battery_full_voltage"
 
 # LEGO Powered Up port letters -> the numeric port IDs used on the wire by
 # City/Train/Technic hubs (A=0 .. D=3).
@@ -32,6 +33,10 @@ CONFIG_SCHEMA = (
             # Optional: a Powered Up Remote has no A-D motor ports, only fixed
             # ports used by the binary_sensor/sensor/light platforms.
             cv.Optional(CONF_PORTS, default=[]): cv.ensure_list(validate_port_letter),
+            # Voltage of a full battery pack. Set: the hub's voltage sensor is
+            # read and each motor's `max_power` becomes a share of THIS voltage,
+            # held as the battery drains (more PWM as the voltage drops).
+            cv.Optional(CONF_BATTERY_FULL_VOLTAGE): cv.All(cv.voltage, cv.Range(min=1.0, max=20.0)),
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)
@@ -44,5 +49,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await ble_client.register_ble_node(var, config)
     cg.add(var.set_hub_name(config[CONF_NAME]))
+    if CONF_BATTERY_FULL_VOLTAGE in config:
+        cg.add(var.set_battery_full_mv(round(config[CONF_BATTERY_FULL_VOLTAGE] * 1000)))
     for port in config[CONF_PORTS]:
         cg.add(var.add_declared_port(PORT_LETTERS[port]))

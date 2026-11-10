@@ -20,6 +20,10 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
   /// they overcome static friction and actually move. Requests 1..100 are
   /// mapped linearly onto min_power..100 (0 stays 0). 0 (default) = no remap.
   void set_min_power(uint8_t min_power) { this->min_power_ = min_power; }
+  /// Request 100 maps to this share (%) of the hub's full-battery voltage (see
+  /// LWP3Hub::scaled_power()), so 1..100 maps onto min_power..that power
+  /// (min_power is a share of the full-battery voltage too).
+  void set_max_power(uint8_t max_power) { this->max_power_ = max_power; }
   /// This port drives a Powered Up light, not a motor (see control()).
   void set_light(bool light) { this->light_ = light; }
   bool is_light() const { return this->light_; }
@@ -30,17 +34,27 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
   int light_override() const { return this->light_override_; }
   /// Called by the hub on disconnect: back to automatic and published as 0.
   void reset();
+  /// Stops hard: a motor port brakes (instead of coasting like a 0 request),
+  /// a light port behaves like a 0 request. Published as 0.
+  void brake();
+  /// Called by the hub when its battery voltage changed: re-sends a running
+  /// motor's power if the new cap changes it.
+  void refresh();
 
  protected:
   void control(float value) override;
   void apply_light_();
+  int8_t mapped_power_(int32_t raw) const;
+  void send_power_(int8_t power);
 
   uint8_t port_{0};
   uint8_t min_power_{0};
+  uint8_t max_power_{100};
+  int8_t last_power_{0};  // last power sent to a motor port
   bool light_{false};
   int light_override_{-1};
-  // Last requested value; light ports only use it to know whether the hub was
-  // asked to move (automatic headlight).
+  // Last requested value: a light port uses it to know whether the hub was
+  // asked to move (automatic headlight), a motor port to re-map it in refresh().
   int32_t last_raw_value_{0};
 };
 
