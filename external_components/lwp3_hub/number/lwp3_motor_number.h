@@ -19,11 +19,18 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
   /// Some motors (e.g. the Duplo Train Base's) need a minimum power before
   /// they overcome static friction and actually move. Requests 1..100 are
   /// mapped linearly onto min_power..100 (0 stays 0). 0 (default) = no remap.
-  void set_min_power(uint8_t min_power) { this->min_power_ = min_power; }
+  void set_min_power(uint8_t min_power) { this->min_power_ = this->min_power_default_ = min_power; }
   /// Request 100 maps to this share (%) of the hub's full-battery voltage (see
   /// LWP3Hub::scaled_power()), so 1..100 maps onto min_power..that power
   /// (min_power is a share of the full-battery voltage too).
-  void set_max_power(uint8_t max_power) { this->max_power_ = max_power; }
+  void set_max_power(uint8_t max_power) { this->max_power_ = this->max_power_default_ = max_power; }
+  /// Change min_power / max_power at runtime (clamped to 0..100, a running
+  /// motor follows at once); reset_power_limits() puts the configured values
+  /// back (the hub calls it on every connect).
+  void set_power_limits(int min_power, int max_power);
+  void reset_power_limits() { this->set_power_limits(this->min_power_default_, this->max_power_default_); }
+  uint8_t min_power() const { return this->min_power_; }
+  uint8_t max_power() const { return this->max_power_; }
   /// This port drives a Powered Up light, not a motor (see control()).
   void set_light(bool light) { this->light_ = light; }
   bool is_light() const { return this->light_; }
@@ -50,6 +57,8 @@ class LWP3MotorNumber : public number::Number, public Component, public Parented
   uint8_t port_{0};
   uint8_t min_power_{0};
   uint8_t max_power_{100};
+  uint8_t min_power_default_{0};  // configured min_power
+  uint8_t max_power_default_{100};  // configured max_power
   int8_t last_power_{0};  // last power sent to a motor port
   bool light_{false};
   int light_override_{-1};

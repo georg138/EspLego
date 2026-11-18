@@ -166,7 +166,7 @@ number:
     # Duplo Train Base motor needs at least ~50 power to overcome static
     # friction and actually move - anything below that just hums in place.
     min_power: 50
-    max_power: 80  # % of the full-battery voltage at request 100
+    max_power: 70  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub1
     port: B
@@ -183,7 +183,7 @@ number:
     # plugged into either A or B, check the logs for which one reports
     # "device attached". Needs a smaller boost than Hub 1's Duplo motor.
     min_power: 10
-    max_power: 80  # % of the full-battery voltage at request 100
+    max_power: 70  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub2
     port: B
@@ -198,7 +198,7 @@ number:
     id: hub3_port_a
     # Identical hub type to Hub 2 (plain LEGO Powered Up Train Hub).
     min_power: 10
-    max_power: 80  # % of the full-battery voltage at request 100
+    max_power: 70  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub3
     port: B
@@ -213,7 +213,7 @@ number:
     id: hub4_port_a
     # Identical hub type to Hubs 2 and 3 (plain LEGO Powered Up Train Hub).
     min_power: 10
-    max_power: 80  # % of the full-battery voltage at request 100
+    max_power: 70  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub4
     port: B
@@ -229,7 +229,7 @@ number:
     name: "Hub 5 Port A Power"
     id: hub5_port_a
     min_power: 10
-    max_power: 80  # % of the full-battery voltage at request 100
+    max_power: 70  # % of the full-battery voltage at request 100
   - platform: lwp3_hub
     lwp3_hub_id: hub5
     port: B

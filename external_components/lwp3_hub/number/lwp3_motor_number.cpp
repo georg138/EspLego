@@ -30,6 +30,13 @@ void LWP3MotorNumber::set_light_override(int override_value) {
   this->apply_light_();
 }
 
+void LWP3MotorNumber::set_power_limits(int min_power, int max_power) {
+  this->min_power_ = static_cast<uint8_t>(std::max(0, std::min(100, min_power)));
+  this->max_power_ = static_cast<uint8_t>(std::max(0, std::min(100, max_power)));
+  ESP_LOGI(TAG, "Port %u power %u..%u%%", this->port_, this->min_power_, this->max_power_);
+  this->refresh();
+}
+
 void LWP3MotorNumber::reset() {
   this->light_override_ = -1;
   this->last_raw_value_ = 0;

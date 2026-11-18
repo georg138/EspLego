@@ -62,6 +62,12 @@ onboard debounce stays in place, so no internal or external resistor is needed
 `esphome/knob-test.yaml`. Turning a knob sets its hub's speed from the knob's position relative to a fixed
 zero position (`knob_step` = 5 % per detent beyond a +-2 detent dead zone, so one
 full turn of a 20-detent KY-040 goes 0 to 100); pressing it stops that hub.
+While a knob's button is held, turning a knob adjusts that held knob's train
+instead of a speed: Knob 1 = headlight brightness (10 % per detent, a click puts it
+back to automatic), Knob 2 = min power, Knob 3 = max power (5 % per detent; both
+back to the configured values whenever the hub connects), Knob 4 = nothing.
+Holding a knob's button for 3 s: Knob 1 toggles coupled mode (same as the Couple
+button), Knob 2 stops all hubs (same as Stop All); Knobs 3/4 do nothing.
 
 ## Wake from deep sleep: turning or pressing any knob (EXT1 ANY_HIGH)
 
@@ -104,6 +110,8 @@ Battery levels come from each hub's "Hub N Battery" sensor.
   status LEDs (GPIO22/21/17/16) blink together at 1 Hz instead of staying solid. Turning it on syncs every
   connected hub to the last knob speed; while coupled, any knob steps all hubs
   together and a knob click stops all. Turning it off leaves speeds as they are.
+  Holding Knob 1's button for 3 s does the same.
 - **Stop All (GPIO19):** zeroes every hub and clears manual headlight overrides.
+  Holding Knob 2's button for 3 s does the same.
 
 Both are exposed to HA/web as binary sensors, plus a "Hubs Coupled" state.

@@ -91,7 +91,9 @@ root.
   `min_power`: 0 stays 0 and any nonzero request 1..100 maps linearly onto
   `min_power`..cap (sign kept), so a motor that needs a minimum power to move
   (Duplo: 50) never sits in a dead zone and no direction tracking is needed.
-  The cap is `max_power` (80). Both `min_power` and `max_power` are % of the
+  The cap is `max_power` (70); holding a knob button and turning Knob 2/3 changes that train's
+  min/max at runtime (`set_power_limits()`, `adjust_held` in controls.yaml) until
+  the hub's next connect. Both `min_power` and `max_power` are % of the
   hub's `battery_full_voltage`: the hub reads its own voltage sensor (io type
   0x0014) and `LWP3Hub::scaled_power()` raises the PWM as the battery drains
   (re-sent via `refresh()`), so a given request keeps giving the same motor

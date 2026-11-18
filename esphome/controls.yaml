@@ -11,8 +11,10 @@ packages:
     vars:
       knob_id: knob1
       knob_name: "Knob 1"
+      knob_index: "1"
       hub_id: hub1
       alt_hub_id: hub5
+      long_press: toggle_coupled  # hold 3 s = Couple button
       clk_pin: GPIO32
       dt_pin: GPIO25
       sw_pin: GPIO39
@@ -21,8 +23,10 @@ packages:
     vars:
       knob_id: knob2
       knob_name: "Knob 2"
+      knob_index: "2"
       hub_id: hub2
       alt_hub_id: hub2
+      long_press: stop_all  # hold 3 s = Stop All button
       clk_pin: GPIO35
       dt_pin: GPIO33
       sw_pin: GPIO34
@@ -31,8 +35,10 @@ packages:
     vars:
       knob_id: knob3
       knob_name: "Knob 3"
+      knob_index: "3"
       hub_id: hub3
       alt_hub_id: hub3
+      long_press: no_action
       clk_pin: GPIO27
       dt_pin: GPIO26
       sw_pin: GPIO14
@@ -41,8 +47,10 @@ packages:
     vars:
       knob_id: knob4
       knob_name: "Knob 4"
+      knob_index: "4"
       hub_id: hub4
       alt_hub_id: hub4
+      long_press: no_action
       clk_pin: GPIO13
       dt_pin: GPIO4
       sw_pin: GPIO15
@@ -79,6 +87,9 @@ globals:
   - id: going_to_sleep  # true once the final sleep sequence starts -> LED stays off
     type: bool
     initial_value: "false"
+  - id: held_knob  # 1..4 = that knob's button is held (first one pressed), 0 = none
+    type: int
+    initial_value: "0"
 
 # Dual-color (red/blue, common anode) status LED, ticking every 500 ms. The
 # output ids still say "green" (GPIO23) but that channel is the blue LED:
@@ -215,23 +226,7 @@ binary_sensor:
     filters:
       - delayed_on_off: 30ms
     on_click:
-      - lambda: |-
-          id(coupled) = !id(coupled);
-          // Each knob's current position now means the shared speed, so every
-          // knob continues from where the hubs actually are.
-          id(knob1_sync)->execute(id(ref_speed));
-          id(knob2_sync)->execute(id(ref_speed));
-          id(knob3_sync)->execute(id(ref_speed));
-          id(knob4_sync)->execute(id(ref_speed));
-      # Sync: coupling sets every connected hub to the last knob speed.
-      - if:
-          condition:
-            lambda: 'return id(coupled);'
-          then:
-            - script.execute:
-                id: apply_all
-                speed: !lambda 'return id(ref_speed);'
-      - script.execute: inactivity_timer
+      - script.execute: toggle_coupled
   - platform: gpio
     id: stop_all_button
     name: "Stop All Button"
@@ -305,7 +300,64 @@ script:
           apply(id(hub3_ble)->connected(), id(hub3_port_a), id(hub3_port_b));
           apply(id(hub4_ble)->connected(), id(hub4_port_a), id(hub4_port_b));
           apply(id(hub5_ble)->connected(), id(hub5_port_a), id(hub5_port_b));
-  # Brake every hub's motors unconditionally and drop manual headlight overrides.
+  # A knob turned while knob `train`'s button is held adjusts that train (its
+  # active hub, Hub 5 instead of Hub 1 when only Hub 5 is connected) by one
+  # step per detent: `knob` 1 = headlight brightness (10 % steps, a click puts it
+  # back to automatic), 2 = min power, 3 = max power (${knob_step} % steps, both
+  # back to the configured values on the hub's next connect), 4 = nothing.
+  - id: adjust_held
+    mode: queued
+    parameters:
+      train: int
+      knob: int
+      dir: int
+    then:
+      - lambda: |-
+          using esphome::lwp3_hub::LWP3MotorNumber;
+          const bool use5 = id(hub5_ble)->connected() && !id(hub1_ble)->connected();
+          LWP3MotorNumber *const as[] = {use5 ? id(hub5_port_a) : id(hub1_port_a), id(hub2_port_a), id(hub3_port_a), id(hub4_port_a)};
+          LWP3MotorNumber *const bs[] = {use5 ? id(hub5_port_b) : id(hub1_port_b), id(hub2_port_b), id(hub3_port_b), id(hub4_port_b)};
+          bool *const held[] = {&id(knob1_rotated_held), &id(knob2_rotated_held), &id(knob3_rotated_held), &id(knob4_rotated_held)};
+          if (train < 1 || train > 4)
+            return;
+          *held[train - 1] = true;  // that press is no longer a click
+          auto clamp = [](int v) { return std::max(0, std::min(100, v)); };
+          for (auto *p : {as[train - 1], bs[train - 1]}) {
+            if (p->is_light()) {
+              if (knob == 1)
+                p->set_light_override(clamp((int) p->state + dir * 10));
+            } else if (knob == 2) {
+              p->set_power_limits(std::min<int>(p->max_power(), clamp(p->min_power() + dir * ${knob_step})), p->max_power());
+            } else if (knob == 3) {
+              p->set_power_limits(p->min_power(), std::max<int>(p->min_power(), clamp(p->max_power() + dir * ${knob_step})));
+            }
+          }
+  # Long press of a knob with nothing assigned (see knob-package.yaml).
+  - id: no_action
+    then:
+      - logger.log: "Knob long press: no action assigned"
+  # Couple button / Knob 1 long press: toggle coupled mode.
+  - id: toggle_coupled
+    then:
+      - lambda: |-
+          id(coupled) = !id(coupled);
+          // Each knob's current position now means the shared speed, so every
+          // knob continues from where the hubs actually are.
+          id(knob1_sync)->execute(id(ref_speed));
+          id(knob2_sync)->execute(id(ref_speed));
+          id(knob3_sync)->execute(id(ref_speed));
+          id(knob4_sync)->execute(id(ref_speed));
+      # Sync: coupling sets every connected hub to the last knob speed.
+      - if:
+          condition:
+            lambda: 'return id(coupled);'
+          then:
+            - script.execute:
+                id: apply_all
+                speed: !lambda 'return id(ref_speed);'
+      - script.execute: inactivity_timer
+  # Stop All button / Knob 2 long press: brake every hub's motors
+  # unconditionally and drop manual headlight overrides.
   # Does NOT touch inactivity_timer: the sleep sequence calls this from inside it.
   - id: stop_all
     then:

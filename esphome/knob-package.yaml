@@ -1,8 +1,14 @@
 # Reusable per-knob package: one KY-040 rotary encoder + push button that
 # drives ONE hub (both its ports A/B). Instantiated once per physical knob from
 # train-controller-dev.yaml via `packages:` + `vars:`. Vars: knob_id, knob_name,
-# hub_id (hub1..hub4), alt_hub_id, clk_pin, dt_pin, sw_pin. Needs an `inactivity_timer`
-# script in the top-level config.
+# knob_index (1..4), hub_id (hub1..hub4), alt_hub_id, clk_pin, dt_pin, sw_pin,
+# long_press. Needs the `inactivity_timer`, `adjust_held` and `long_press`
+# scripts and the `held_knob` global (controls.yaml).
+#
+# `long_press`: id of a parameterless script run when this knob's button is held
+# for 3 s (fires while still held; a short click still brakes, and a hold used
+# to adjust a setting does not count). controls.yaml: Knob 1 `toggle_coupled`,
+# Knob 2 `stop_all`, the others `no_action`.
 #
 # Wiring is ACTIVE-HIGH: module `+` to GND and module GND to 3.3V (the two
 # power pins swapped), CLK/DT/SW to the pins. The module's own resistors then act
@@ -26,8 +32,10 @@
 # re-sets it so the knob's CURRENT position maps to the hub's current speed. A
 # hub moved from a remote or Home Assistant is therefore not followed: the next
 # turn jumps to the knob's own position. Pressing the button brakes the hub (and
-# puts a port-B headlight back to automatic); turning while pushed dims that
-# light. Every action restarts the inactivity timer. Waking from deep sleep is NOT
+# puts a port-B headlight back to automatic). While any knob's button is held,
+# turning a knob adjusts the HELD knob's train instead of changing a speed
+# (`adjust_held` in controls.yaml): Knob 1 = headlight, Knob 2 = min power,
+# Knob 3 = max power. Every action restarts the inactivity timer. Waking from deep sleep is NOT
 # done here: the SW pins are the EXT1 wake set (see deep_sleep in controls.yaml
 # and docs/gpio_pinout.md).
 
@@ -41,7 +49,7 @@ globals:
   - id: ${knob_id}_last  # last speed this knob applied (skip duplicate writes)
     type: int
     initial_value: "0"
-  - id: ${knob_id}_rotated_held  # knob was turned while pushed -> that press is not a click
+  - id: ${knob_id}_rotated_held  # a knob was turned while this one was held -> not a click
     type: bool
     initial_value: "false"
 
@@ -69,13 +77,10 @@ script:
           const bool use_alt = id(${alt_hub_id}_ble).connected() && !id(${hub_id}_ble).connected();
           auto *pa = use_alt ? id(${alt_hub_id}_port_a) : id(${hub_id}_port_a);
           auto *pb = use_alt ? id(${alt_hub_id}_port_b) : id(${hub_id}_port_b);
-          // Rotate while pushed: dim the active hub's light by hand instead of
-          // changing speed (only hubs whose port B is `light: true`).
-          if (id(${knob_id}_button).state) {
-            if (pb->is_light()) {
-              pb->set_light_override(std::max(0, std::min(100, (int) pb->state + dir * 10)));
-              id(${knob_id}_rotated_held) = true;
-            }
+          // A knob button is held: this turn adjusts that knob's train (see
+          // header), not this knob's speed.
+          if (id(held_knob) != 0) {
+            id(adjust_held)->execute(id(held_knob), ${knob_index}, dir);
             return;
           }
           // Position relative to the zero position, clamped so winding past
@@ -131,9 +136,27 @@ binary_sensor:
         input: true
       allow_other_uses: true  # also listed in deep_sleep esp32_ext1_wakeup
     on_press:
-      - lambda: id(${knob_id}_rotated_held) = false;
+      - lambda: |-
+          id(${knob_id}_rotated_held) = false;
+          if (id(held_knob) == 0)
+            id(held_knob) = ${knob_index};
+    on_release:
+      - lambda: |-
+          if (id(held_knob) == ${knob_index})
+            id(held_knob) = 0;
+    # Long press (see header): fires once the button has been held for 3 s.
+    on_multi_click:
+      - timing:
+          - ON for at least 3s
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(${knob_id}_rotated_held);'
+              then:
+                - script.execute: ${long_press}
+                - script.execute: inactivity_timer
     on_click:
-      # A press that was used to dim the light (rotate while pushed) must not
+      # A press that was used to adjust a setting (knobs turned while held) must not
       # also stop the train.
       - if:
           condition:

@@ -57,14 +57,17 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
 - Per-hub `min_power:` mapping: requests 1..100 map linearly onto
   `min_power`..cap, so a motor that needs a boost to overcome static friction
   never hums in place at low power and the speed range stays smooth.
-- Motor voltage cap: request 100 = `max_power` (80) % of the hub's full-battery
+- Motor voltage cap: request 100 = `max_power` (70) % of the hub's full-battery
   voltage (`battery_full_voltage`), held constant as the batteries drain by
   reading the hub's own voltage sensor and raising the PWM. `min_power` is
-  scaled the same way.
+  scaled the same way. Hold a train's knob button and turn Knob 2 / Knob 3 to change that train's
+  min / max power (5 % per detent); both go back to the configured values on the
+  next connect.
 - Duplo Train Base built-in speaker support (5 predefined sounds as
   `button` entities).
 - A physical KY-040 rotary encoder + button: turn to set speed, press to
-  stop — works even if Home Assistant/Wi-Fi is down.
+  stop, hold Knob 1 for 3 s to couple/uncouple all hubs, Knob 2 for 3 s to stop all — works even if Home
+  Assistant/Wi-Fi is down.
 - A global "Stop All Trains" safety switch, and automatic motor zeroing on
   BLE disconnect.
 - LEGO Powered Up Remote (Handset 88010) support, via `remote-package.yaml`:
@@ -93,8 +96,8 @@ See [`PLAN.md`](PLAN.md) for the full architecture writeup and history.
   (stop), on Stop All, and when coupling is toggled.
 - Port-B headlight: port B is assumed to always be a Powered Up light on every
   hub (`light: true` on each "Hub N Headlight" number, `light_b` in the full
-  config). It is on while the hub moves; hold the knob button and turn to dim it
-  by hand (a plain click returns it to automatic).
+  config). It is on while the hub moves; hold the train's knob button and turn
+  Knob 1 to dim it by hand (a plain click returns it to automatic).
 - Duplo stall reset (both configs, Hub 1, `hub1-stall.yaml`): the base's internal speedometer is
   exposed as "Hub 1 Measured Speed" (`sensor` with `type: speedometer`, raw
   units). If it drops to 0 and stays 0 for 1 s while Hub 1 is still commanded to

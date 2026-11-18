@@ -10,7 +10,7 @@ substitutions:
   # Motor voltage cap: request 100 = max_power_a % of the full-battery voltage,
   # held as the batteries drain (the hub's voltage sensor raises the PWM).
   # battery_full_v: Powered Up Train Hub, 6x AA.
-  max_power_a: "80"
+  max_power_a: "70"
   battery_full_v: "9.0V"
   # Port B is always a Powered Up light (headlight follows the hub's motion).
   light_b: "true"

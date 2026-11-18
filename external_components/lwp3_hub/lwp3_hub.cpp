@@ -25,6 +25,11 @@ void LWP3Hub::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gatt
     case ESP_GATTC_OPEN_EVT: {
       if (param->open.status == ESP_GATT_OK) {
         ESP_LOGI(TAG, "[%s] Connected", this->hub_name_.c_str());
+        // Min/max power set by hand (knob pressed + turned) last one connection.
+        for (auto *motor : this->motors_) {
+          if (motor != nullptr)
+            motor->reset_power_limits();
+        }
       }
       break;
     }
